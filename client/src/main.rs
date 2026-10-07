@@ -12,8 +12,8 @@ use resources::GameState;
 use systems::camera::{FacingCam, OrbitCam};
 
 fn main() {
-    env_logger::init();
-
+    // Logging is owned by Bevy's LogPlugin (RUST_LOG respected).
+    // Do NOT call env_logger::init() here — double init kills all log output.
     App::new()
         // ── Core ──────────────────────────────────────────────────────────────
         .insert_resource(ClearColor(Color::srgb(0.05, 0.08, 0.12)))
