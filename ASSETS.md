@@ -1,8 +1,12 @@
-# Asset Guide — The Bastion
+# Asset Guide — Bastionlands
 
 This file tells you exactly where to drop art assets so Bevy can find them.
 
 All assets live under `client/assets/`.
+
+Community-made characters and enemies must additionally satisfy
+[CHARACTER_SPEC.md](./CHARACTER_SPEC.md) (skeleton, proportions, clip names)
+before they are accepted — file layout alone is not approval.
 
 ---
 
@@ -11,34 +15,34 @@ All assets live under `client/assets/`.
 ```
 client/assets/
 ├── models/
-│   ├── mechs/
-│   │   ├── light_scout.glb       ← LightScout mech
-│   │   └── heavy_juggernaut.glb  ← HeavyJuggernaut mech
-│   ├── kaiju/
-│   │   ├── breaker.glb           ← Breaker-class Kaiju
-│   │   └── parasite.glb          ← Parasite-class Kaiju
+│   ├── characters/
+│   │   └── adventurer.glb        ← base playable character
+│   ├── enemies/
+│   │   └── gloomrat.glb          ← first enemy
 │   ├── environment/
-│   │   ├── wall_segment.glb      ← Defensive wall piece
-│   │   ├── bastion_gate.glb      ← Refuel/respawn gate
-│   │   └── ground_tile.glb       ← Optional ground tile
+│   │   ├── town_gate.glb         ← starter camp gate / respawn point
+│   │   ├── tent.glb              ← camp dressing
+│   │   └── ground_tile.glb       ← optional ground tile
 │   └── loot/
-│       ├── kaiju_core.glb
-│       ├── scrap_metal.glb
-│       ├── fuel_cell.glb
-│       └── mech_part.glb
+│       ├── gold_cache.glb
+│       ├── pelt.glb
+│       ├── herb.glb
+│       └── trinket.glb
 ├── textures/
-│   ├── mechs/
-│   │   └── light_scout_albedo.png
-│   ├── kaiju/
-│   │   └── breaker_albedo.png
+│   ├── characters/
+│   │   └── adventurer_albedo.png
+│   ├── enemies/
+│   │   └── gloomrat_albedo.png
 │   └── environment/
-│       ├── wall_pristine.png
-│       ├── wall_damaged.png
-│       └── ground.png
+│       ├── ground.png
+│       └── tent_canvas.png
 ├── audio/
-│   ├── kaiju_roar.ogg
-│   ├── mech_footstep.ogg
-│   └── weapon_fire.ogg
+│   ├── sword_swing.ogg
+│   ├── sword_hit.ogg
+│   ├── rat_squeal.ogg
+│   ├── pickup_gold.ogg
+│   ├── level_up.ogg
+│   └── death.ogg
 └── fonts/
     └── bastion_ui.ttf            ← UI font (any TTF/OTF)
 ```
@@ -49,19 +53,19 @@ client/assets/
 
 ```rust
 // In a startup system:
-fn spawn_mech(
+fn spawn_adventurer(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
 ) {
     commands.spawn(SceneRoot(
-        asset_server.load("models/mechs/light_scout.glb#Scene0")
+        asset_server.load("models/characters/adventurer.glb#Scene0")
     ));
 }
 ```
 
 For models with multiple named scenes:
 ```rust
-asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/mechs/light_scout.glb"))
+asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/characters/adventurer.glb"))
 ```
 
 ---
@@ -71,9 +75,9 @@ asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/mechs/light_scout.
 The current Phase 1 code spawns coloured cubes (`Cuboid`) as placeholders.
 Search for `Cuboid::new` in:
 
-- `client/src/plugins/mech_plugin.rs` — player mech
-- `client/src/plugins/kaiju_plugin.rs` — Kaiju
-- `client/src/plugins/wall_plugin.rs` — wall segments
+- `client/src/plugins/mech_plugin.rs` — player character (rename to character as the client retheme lands)
+- `client/src/plugins/kaiju_plugin.rs` — enemies
+- `client/src/plugins/wall_plugin.rs` — camp dressing
 
 Replace the `Mesh3d(meshes.add(Cuboid::new(...)))` + `MeshMaterial3d` pair with a `SceneRoot` pointing at the corresponding `.glb` asset path above.
 
@@ -81,9 +85,17 @@ Replace the `Mesh3d(meshes.add(Cuboid::new(...)))` + `MeshMaterial3d` pair with 
 
 ## Recommended Free Asset Sources
 
-- [Quaternius](https://quaternius.com) — low-poly mechs, robots, monsters (CC0)
-- [Kenney.nl](https://kenney.nl) — sci-fi kits (CC0)
+- [Quaternius](https://quaternius.com) — low-poly heroes, animals, monsters (CC0)
+- [Kenney.nl](https://kenney.nl) — fantasy and nature kits (CC0)
 - [Sketchfab](https://sketchfab.com) — community models (check licences)
 - [itch.io game assets](https://itch.io/game-assets) — various
 
 Export all models as **GLTF 2.0 (`.glb`)** with embedded textures for easiest Bevy integration.
+
+---
+
+## Pipeline note
+
+Sister project **AssetDrop** generates rigged, animated GLBs. Its output can
+land here once it passes the CHARACTER_SPEC.md gate — same checklist as
+hand-made submissions.

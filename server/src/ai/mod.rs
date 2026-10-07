@@ -1,1 +1,1 @@
-pub mod kaiju_ai;
+pub mod enemy_ai;

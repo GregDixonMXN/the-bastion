@@ -2,57 +2,32 @@
 
 use spacetimedb::{reducer, spacetimedb_lib::Identity, ReducerContext, Table};
 
-// Bring the generated table-accessor traits into scope.
 use crate::tables::player::player;
 use crate::tables::player::PlayerTable;
 
 /// Called on first connect — creates a player row if one does not exist.
+/// Identity always comes from the connection, never from a parameter.
 #[reducer]
 pub fn register_player(ctx: &ReducerContext, username: String) {
     let identity = ctx.sender;
     if ctx.db.player().identity().find(&identity).is_some() {
-        log::info!("Player {:?} already registered", identity);
         return;
     }
+    let clean = username.trim().chars().take(24).collect::<String>();
     ctx.db.player().insert(PlayerTable {
         identity,
-        username,
-        sentence_remaining: 3600, // start with 1 hour on sentence
-        current_mech_id: None,
+        username: if clean.is_empty() { "Wanderer".to_string() } else { clean },
         online_status: true,
-        is_rogue: false,
+        current_character_id: None,
     });
-    log::info!("Registered new player {:?}", identity);
 }
 
-/// Awards sentence reduction to a player.
+/// Marks the sender offline. No identity parameter — you can only log
+/// yourself out.
 #[reducer]
-pub fn update_sentence(ctx: &ReducerContext, identity: Identity, amount: u64) {
-    use crate::tables::player::player;
-    if let Some(mut p) = ctx.db.player().identity().find(&identity) {
-        p.sentence_remaining = p.sentence_remaining.saturating_sub(amount);
-        ctx.db.player().identity().update(p);
-    }
-}
-
-/// Flags a player as rogue — automated turrets will target them.
-#[reducer]
-pub fn mark_rogue(ctx: &ReducerContext, identity: Identity) {
-    use crate::tables::player::player;
-    if let Some(mut p) = ctx.db.player().identity().find(&identity) {
-        p.is_rogue = true;
-        ctx.db.player().identity().update(p);
-        log::warn!("Player {:?} marked ROGUE", identity);
-    }
-}
-
-/// Sets a player offline and persists mech state.
-#[reducer]
-pub fn player_logout(ctx: &ReducerContext, identity: Identity) {
-    use crate::tables::player::player;
-    if let Some(mut p) = ctx.db.player().identity().find(&identity) {
+pub fn player_logout(ctx: &ReducerContext) {
+    if let Some(mut p) = ctx.db.player().identity().find(&ctx.sender) {
         p.online_status = false;
         ctx.db.player().identity().update(p);
-        log::info!("Player {:?} logged out", identity);
     }
 }
