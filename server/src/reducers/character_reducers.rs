@@ -59,12 +59,22 @@ pub fn spawn_character(ctx: &ReducerContext, name: String) {
 }
 
 /// Moves the sender's character. You cannot move anyone else's, nor move
-/// while dead.
+/// while dead. Positions are trust-but-verify: jumps over 15 m in one call
+/// are rejected, so clients must send small frequent steps (the game client
+/// syncs every ~1 m). Teleports stay a GM/event privilege, not a player one.
+pub const MAX_STEP: f32 = 15.0;
+
 #[reducer]
 pub fn move_character(ctx: &ReducerContext, character_id: u64, new_x: f32, new_z: f32) {
     use crate::tables::character::character;
     if let Some(mut c) = ctx.db.character().id().find(&character_id) {
         if c.owner_identity != ctx.sender || c.is_dead {
+            return;
+        }
+        let dx = new_x - c.pos_x;
+        let dz = new_z - c.pos_z;
+        if (dx * dx + dz * dz).sqrt() > MAX_STEP {
+            log::warn!("Character {} move rejected: step too far", character_id);
             return;
         }
         c.pos_x = new_x;

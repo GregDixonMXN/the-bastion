@@ -90,6 +90,15 @@ make dev
 
 ---
 
+## Headless playtest
+
+`cargo run -p e2e` drives the full loop against the local module with no
+window: register → spawn → teleport rejection → hunt → XP → loot → repop →
+leash break → death → respawn. It defines its own 10-second spawn point, so
+the shared field is untouched. Takes ~2 minutes.
+
+---
+
 ## Generate Client SDK Types
 
 After publishing the server module, generate the Rust client bindings:

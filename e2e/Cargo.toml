@@ -1,0 +1,13 @@
+[package]
+name = "e2e"
+version = "0.1.0"
+edition = "2021"
+
+[[bin]]
+name = "playtest"
+path = "src/main.rs"
+
+[dependencies]
+spacetimedb-sdk = { workspace = true }
+log = { workspace = true }
+env_logger = "0.11"
