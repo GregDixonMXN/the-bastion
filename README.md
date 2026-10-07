@@ -108,7 +108,7 @@ Then update `client/src/plugins/spacetime_plugin.rs` to use the generated types 
 |---|---|
 | **1 — World core** *(current)* | Server-authoritative character/enemy/loot tables, melee + XP/levels + respawn, enemy AI tick, Bevy scaffold |
 | **2 — Networking** | Publish module, generated client types, live state sync, input→reducer calls |
-| **3 — First hunt** | Starter town + Gloomrat fields playable loop, death/respawn, wave replenishment |
+| **3 — First hunt** | Starter town + Gloomrat fields playable loop, death/respawn, leash + repop tuning |
 | **4 — Community roster** | First approved community character via CHARACTER_SPEC.md, second enemy, zone 2 |
 
 ---

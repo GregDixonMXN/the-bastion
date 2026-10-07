@@ -74,8 +74,8 @@ pub fn move_character(ctx: &ReducerContext, character_id: u64, new_x: f32, new_z
 }
 
 /// Basic melee attack on an enemy. Range-checked; kills grant XP (with
-/// level-ups), drop gold loot, and respawn nothing — enemies stay dead until
-/// the wave director (Phase 2) replenishes them.
+/// level-ups), drop gold loot, and free the spawn point — a fresh enemy
+/// repops there once its timer lapses.
 #[reducer]
 pub fn attack_enemy(ctx: &ReducerContext, character_id: u64, enemy_id: u64) {
     use crate::tables::character::character;

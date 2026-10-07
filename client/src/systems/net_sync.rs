@@ -22,6 +22,9 @@ pub fn drain_net_events(
         let rx = net.rx.lock().unwrap();
         rx.try_iter().collect()
     };
+    if !events.is_empty() {
+        log::debug!("net drain: {} events", events.len());
+    }
     for event in events {
         match event {
             NetEvent::Connected(identity) => {
@@ -97,14 +100,6 @@ pub fn drain_net_events(
                         commands.entity(entity).insert(LocalCharacter);
                         net.own_character_id = Some(row.id);
                         log::info!("Local character bound: {} (id {})", row.name, row.id);
-                    }
-                }
-                // Retire the startup placeholder once the real row lands.
-                if is_ours {
-                    for (entity, c) in &characters {
-                        if c.db_id == 0 {
-                            commands.entity(entity).despawn();
-                        }
                     }
                 }
             }

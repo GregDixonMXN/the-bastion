@@ -21,6 +21,9 @@ pub struct EnemyTable {
     pub pos_z: f32,
     /// Character this enemy is currently pursuing, if any.
     pub target_character: Option<u64>,
+    /// Where this enemy lives. Strays past the leash walk home.
+    pub home_x: f32,
+    pub home_z: f32,
     pub speed: f32,
     pub damage: f32,
     /// XP awarded to the killer.

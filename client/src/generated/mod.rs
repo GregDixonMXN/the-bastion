@@ -11,8 +11,10 @@ pub mod character_table;
 pub mod character_table_type;
 pub mod collect_loot_reducer;
 pub mod damage_character_reducer;
+pub mod define_spawn_point_reducer;
 pub mod enemy_table;
 pub mod enemy_table_type;
+pub mod init_world_reducer;
 pub mod loot_table;
 pub mod loot_table_type;
 pub mod move_character_reducer;
@@ -24,7 +26,11 @@ pub mod respawn_reducer;
 pub mod spawn_character_reducer;
 pub mod spawn_enemy_reducer;
 pub mod spawn_loot_reducer;
+pub mod spawn_point_table;
+pub mod spawn_point_table_type;
 pub mod tick_enemy_ai_reducer;
+pub mod tick_enemy_ai_schedule_table;
+pub mod tick_enemy_ai_schedule_type;
 
 pub use attack_enemy_reducer::{attack_enemy, set_flags_for_attack_enemy, AttackEnemyCallbackId};
 pub use character_table::*;
@@ -33,8 +39,12 @@ pub use collect_loot_reducer::{collect_loot, set_flags_for_collect_loot, Collect
 pub use damage_character_reducer::{
     damage_character, set_flags_for_damage_character, DamageCharacterCallbackId,
 };
+pub use define_spawn_point_reducer::{
+    define_spawn_point, set_flags_for_define_spawn_point, DefineSpawnPointCallbackId,
+};
 pub use enemy_table::*;
 pub use enemy_table_type::EnemyTable;
+pub use init_world_reducer::{init_world, set_flags_for_init_world, InitWorldCallbackId};
 pub use loot_table::*;
 pub use loot_table_type::LootTable;
 pub use move_character_reducer::{
@@ -54,9 +64,13 @@ pub use spawn_character_reducer::{
 };
 pub use spawn_enemy_reducer::{set_flags_for_spawn_enemy, spawn_enemy, SpawnEnemyCallbackId};
 pub use spawn_loot_reducer::{set_flags_for_spawn_loot, spawn_loot, SpawnLootCallbackId};
+pub use spawn_point_table::*;
+pub use spawn_point_table_type::SpawnPointTable;
 pub use tick_enemy_ai_reducer::{
     set_flags_for_tick_enemy_ai, tick_enemy_ai, TickEnemyAiCallbackId,
 };
+pub use tick_enemy_ai_schedule_table::*;
+pub use tick_enemy_ai_schedule_type::TickEnemyAiSchedule;
 
 #[derive(Clone, PartialEq, Debug)]
 
@@ -78,6 +92,13 @@ pub enum Reducer {
         character_id: u64,
         amount: f32,
     },
+    DefineSpawnPoint {
+        enemy_type: String,
+        pos_x: f32,
+        pos_z: f32,
+        respawn_secs: u64,
+    },
+    InitWorld,
     MoveCharacter {
         character_id: u64,
         new_x: f32,
@@ -105,7 +126,9 @@ pub enum Reducer {
         value: u64,
         from_enemy: Option<u64>,
     },
-    TickEnemyAi,
+    TickEnemyAi {
+        schedule: TickEnemyAiSchedule,
+    },
 }
 
 impl __sdk::InModule for Reducer {
@@ -118,6 +141,8 @@ impl __sdk::Reducer for Reducer {
             Reducer::AttackEnemy { .. } => "attack_enemy",
             Reducer::CollectLoot { .. } => "collect_loot",
             Reducer::DamageCharacter { .. } => "damage_character",
+            Reducer::DefineSpawnPoint { .. } => "define_spawn_point",
+            Reducer::InitWorld => "init_world",
             Reducer::MoveCharacter { .. } => "move_character",
             Reducer::PlayerLogout => "player_logout",
             Reducer::RegisterPlayer { .. } => "register_player",
@@ -125,7 +150,7 @@ impl __sdk::Reducer for Reducer {
             Reducer::SpawnCharacter { .. } => "spawn_character",
             Reducer::SpawnEnemy { .. } => "spawn_enemy",
             Reducer::SpawnLoot { .. } => "spawn_loot",
-            Reducer::TickEnemyAi => "tick_enemy_ai",
+            Reducer::TickEnemyAi { .. } => "tick_enemy_ai",
             _ => unreachable!(),
         }
     }
@@ -152,6 +177,17 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
                 damage_character_reducer::DamageCharacterArgs,
             >("damage_character", &value.args)?
             .into()),
+            "define_spawn_point" => Ok(__sdk::parse_reducer_args::<
+                define_spawn_point_reducer::DefineSpawnPointArgs,
+            >("define_spawn_point", &value.args)?
+            .into()),
+            "init_world" => Ok(
+                __sdk::parse_reducer_args::<init_world_reducer::InitWorldArgs>(
+                    "init_world",
+                    &value.args,
+                )?
+                .into(),
+            ),
             "move_character" => Ok(__sdk::parse_reducer_args::<
                 move_character_reducer::MoveCharacterArgs,
             >("move_character", &value.args)?
@@ -209,6 +245,8 @@ pub struct DbUpdate {
     enemy: __sdk::TableUpdate<EnemyTable>,
     loot: __sdk::TableUpdate<LootTable>,
     player: __sdk::TableUpdate<PlayerTable>,
+    spawn_point: __sdk::TableUpdate<SpawnPointTable>,
+    tick_enemy_ai_schedule: __sdk::TableUpdate<TickEnemyAiSchedule>,
 }
 
 impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
@@ -229,6 +267,12 @@ impl TryFrom<__ws::DatabaseUpdate<__ws::BsatnFormat>> for DbUpdate {
                 "player" => db_update
                     .player
                     .append(player_table::parse_table_update(table_update)?),
+                "spawn_point" => db_update
+                    .spawn_point
+                    .append(spawn_point_table::parse_table_update(table_update)?),
+                "tick_enemy_ai_schedule" => db_update.tick_enemy_ai_schedule.append(
+                    tick_enemy_ai_schedule_table::parse_table_update(table_update)?,
+                ),
 
                 unknown => {
                     return Err(__sdk::InternalError::unknown_name(
@@ -267,6 +311,15 @@ impl __sdk::DbUpdate for DbUpdate {
         diff.player = cache
             .apply_diff_to_table::<PlayerTable>("player", &self.player)
             .with_updates_by_pk(|row| &row.identity);
+        diff.spawn_point = cache
+            .apply_diff_to_table::<SpawnPointTable>("spawn_point", &self.spawn_point)
+            .with_updates_by_pk(|row| &row.id);
+        diff.tick_enemy_ai_schedule = cache
+            .apply_diff_to_table::<TickEnemyAiSchedule>(
+                "tick_enemy_ai_schedule",
+                &self.tick_enemy_ai_schedule,
+            )
+            .with_updates_by_pk(|row| &row.scheduled_id);
 
         diff
     }
@@ -280,6 +333,8 @@ pub struct AppliedDiff<'r> {
     enemy: __sdk::TableAppliedDiff<'r, EnemyTable>,
     loot: __sdk::TableAppliedDiff<'r, LootTable>,
     player: __sdk::TableAppliedDiff<'r, PlayerTable>,
+    spawn_point: __sdk::TableAppliedDiff<'r, SpawnPointTable>,
+    tick_enemy_ai_schedule: __sdk::TableAppliedDiff<'r, TickEnemyAiSchedule>,
     __unused: std::marker::PhantomData<&'r ()>,
 }
 
@@ -297,6 +352,16 @@ impl<'r> __sdk::AppliedDiff<'r> for AppliedDiff<'r> {
         callbacks.invoke_table_row_callbacks::<EnemyTable>("enemy", &self.enemy, event);
         callbacks.invoke_table_row_callbacks::<LootTable>("loot", &self.loot, event);
         callbacks.invoke_table_row_callbacks::<PlayerTable>("player", &self.player, event);
+        callbacks.invoke_table_row_callbacks::<SpawnPointTable>(
+            "spawn_point",
+            &self.spawn_point,
+            event,
+        );
+        callbacks.invoke_table_row_callbacks::<TickEnemyAiSchedule>(
+            "tick_enemy_ai_schedule",
+            &self.tick_enemy_ai_schedule,
+            event,
+        );
     }
 }
 
@@ -1021,5 +1086,7 @@ impl __sdk::SpacetimeModule for RemoteModule {
         enemy_table::register_table(client_cache);
         loot_table::register_table(client_cache);
         player_table::register_table(client_cache);
+        spawn_point_table::register_table(client_cache);
+        tick_enemy_ai_schedule_table::register_table(client_cache);
     }
 }

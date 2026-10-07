@@ -4,13 +4,19 @@
 #![allow(unused, clippy::all)]
 use spacetimedb_sdk::__codegen::{self as __sdk, __lib, __sats, __ws};
 
+use super::tick_enemy_ai_schedule_type::TickEnemyAiSchedule;
+
 #[derive(__lib::ser::Serialize, __lib::de::Deserialize, Clone, PartialEq, Debug)]
 #[sats(crate = __lib)]
-pub(super) struct TickEnemyAiArgs {}
+pub(super) struct TickEnemyAiArgs {
+    pub schedule: TickEnemyAiSchedule,
+}
 
 impl From<TickEnemyAiArgs> for super::Reducer {
     fn from(args: TickEnemyAiArgs) -> Self {
-        Self::TickEnemyAi
+        Self::TickEnemyAi {
+            schedule: args.schedule,
+        }
     }
 }
 
@@ -30,7 +36,7 @@ pub trait tick_enemy_ai {
     /// This method returns immediately, and errors only if we are unable to send the request.
     /// The reducer will run asynchronously in the future,
     ///  and its status can be observed by listening for [`Self::on_tick_enemy_ai`] callbacks.
-    fn tick_enemy_ai(&self) -> __sdk::Result<()>;
+    fn tick_enemy_ai(&self, schedule: TickEnemyAiSchedule) -> __sdk::Result<()>;
     /// Register a callback to run whenever we are notified of an invocation of the reducer `tick_enemy_ai`.
     ///
     /// Callbacks should inspect the [`__sdk::ReducerEvent`] contained in the [`super::ReducerEventContext`]
@@ -40,7 +46,7 @@ pub trait tick_enemy_ai {
     /// to cancel the callback.
     fn on_tick_enemy_ai(
         &self,
-        callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
+        callback: impl FnMut(&super::ReducerEventContext, &TickEnemyAiSchedule) + Send + 'static,
     ) -> TickEnemyAiCallbackId;
     /// Cancel a callback previously registered by [`Self::on_tick_enemy_ai`],
     /// causing it not to run in the future.
@@ -48,12 +54,13 @@ pub trait tick_enemy_ai {
 }
 
 impl tick_enemy_ai for super::RemoteReducers {
-    fn tick_enemy_ai(&self) -> __sdk::Result<()> {
-        self.imp.call_reducer("tick_enemy_ai", TickEnemyAiArgs {})
+    fn tick_enemy_ai(&self, schedule: TickEnemyAiSchedule) -> __sdk::Result<()> {
+        self.imp
+            .call_reducer("tick_enemy_ai", TickEnemyAiArgs { schedule })
     }
     fn on_tick_enemy_ai(
         &self,
-        mut callback: impl FnMut(&super::ReducerEventContext) + Send + 'static,
+        mut callback: impl FnMut(&super::ReducerEventContext, &TickEnemyAiSchedule) + Send + 'static,
     ) -> TickEnemyAiCallbackId {
         TickEnemyAiCallbackId(self.imp.on_reducer(
             "tick_enemy_ai",
@@ -62,7 +69,7 @@ impl tick_enemy_ai for super::RemoteReducers {
                 let super::ReducerEventContext {
                     event:
                         __sdk::ReducerEvent {
-                            reducer: super::Reducer::TickEnemyAi {},
+                            reducer: super::Reducer::TickEnemyAi { schedule },
                             ..
                         },
                     ..
@@ -70,7 +77,7 @@ impl tick_enemy_ai for super::RemoteReducers {
                 else {
                     unreachable!()
                 };
-                callback(ctx)
+                callback(ctx, schedule)
             }),
         ))
     }

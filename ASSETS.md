@@ -75,9 +75,9 @@ asset_server.load(GltfAssetLabel::Scene(0).from_asset("models/characters/adventu
 The current Phase 1 code spawns coloured cubes (`Cuboid`) as placeholders.
 Search for `Cuboid::new` in:
 
-- `client/src/plugins/mech_plugin.rs` — player character (rename to character as the client retheme lands)
-- `client/src/plugins/kaiju_plugin.rs` — enemies
-- `client/src/plugins/wall_plugin.rs` — camp dressing
+- `client/src/plugins/character_plugin.rs` — player character
+- `client/src/plugins/enemy_plugin.rs` — enemies
+- `client/src/plugins/camp_plugin.rs` — camp dressing (gate, tents)
 
 Replace the `Mesh3d(meshes.add(Cuboid::new(...)))` + `MeshMaterial3d` pair with a `SceneRoot` pointing at the corresponding `.glb` asset path above.
 

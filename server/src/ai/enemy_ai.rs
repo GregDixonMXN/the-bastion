@@ -1,29 +1,30 @@
 #![allow(dead_code, unused_imports, unused_variables)]
 
-use spacetimedb::{reducer, ReducerContext, Table};
+use spacetimedb::{reducer, table, ReducerContext, Table};
 
 use crate::tables::character::character;
 use crate::tables::enemy::enemy;
 
+/// Schedule row driving the enemy AI loop every 2 seconds. Armed once by
+/// `init_world`; the row living means the loop lives.
+#[table(name = tick_enemy_ai_schedule, scheduled(tick_enemy_ai))]
+pub struct TickEnemyAiSchedule {
+    #[primary_key]
+    #[auto_inc]
+    pub scheduled_id: u64,
+    pub scheduled_at: spacetimedb::ScheduleAt,
+}
+
 /// How far an enemy notices a living character.
 pub const AGGRO_RADIUS: f32 = 30.0;
 
-/// AI tick — each enemy either closes on its target or, if idle, notices the
-/// nearest living character in range and takes an interest.
-///
-/// Phase 2: schedule this via a SpacetimeDB schedule table to run every 2s:
-/// ```rust
-/// #[table(name = tick_enemy_ai_schedule, scheduled(tick_enemy_ai))]
-/// pub struct TickEnemyAiSchedule {
-///     #[primary_key] #[auto_inc] pub scheduled_id: u64,
-///     pub scheduled_at: spacetimedb::ScheduleAt,
-/// }
-/// ```
-/// Then in the `init` reducer insert a row with `ScheduleAt::Interval(Duration::from_secs(2))`.
+/// AI tick — repop due spawn points, then step every living enemy.
 #[reducer]
-pub fn tick_enemy_ai(ctx: &ReducerContext) {
+pub fn tick_enemy_ai(ctx: &ReducerContext, _schedule: TickEnemyAiSchedule) {
     use crate::tables::character::character;
     use crate::tables::enemy::enemy;
+
+    crate::reducers::spawn_reducers::tick_spawns(ctx);
 
     // Idle enemies notice the nearest living character in radius.
     let characters: Vec<_> = ctx
