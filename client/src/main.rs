@@ -9,6 +9,7 @@ mod systems;
 use bevy::prelude::*;
 use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, TerrainPlugin, UiPlugin};
 use resources::GameState;
+use systems::camera::{FacingCam, OrbitCam};
 
 fn main() {
     env_logger::init();
@@ -26,6 +27,8 @@ fn main() {
         }))
         // ── State ─────────────────────────────────────────────────────────────
         .init_state::<GameState>()
+        .insert_resource(OrbitCam::default())
+        .insert_resource(FacingCam::default())
         // ── Game Plugins ──────────────────────────────────────────────────────
         .add_plugins((
             SpacetimePlugin,

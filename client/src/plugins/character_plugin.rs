@@ -5,7 +5,7 @@ use crate::components::{Character, LocalCharacter};
 use crate::systems::combat_input;
 use crate::systems::locomotion::animate_locomotion;
 use crate::systems::player_input;
-use crate::systems::camera::follow_camera;
+use crate::systems::camera::orbit_camera;
 
 pub struct CharacterPlugin;
 
@@ -14,7 +14,7 @@ impl Plugin for CharacterPlugin {
         // No startup placeholder: the sync system spawns our real character
         // from its database row within a second of connecting. (A placeholder
         // carrying LocalCharacter would steal the local tag — see net_sync.)
-        app.add_systems(Update, (player_input::player_input, combat_input, follow_camera, animate_locomotion, log_health));
+        app.add_systems(Update, (player_input::player_input, combat_input, orbit_camera, animate_locomotion, log_health));
     }
 }
 

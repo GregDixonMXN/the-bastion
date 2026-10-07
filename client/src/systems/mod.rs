@@ -5,7 +5,7 @@ pub mod locomotion;
 pub mod net_sync;
 pub mod player_input;
 
-pub use camera::follow_camera;
+pub use camera::orbit_camera;
 pub use combat::combat_input;
 pub use connection::initiate_connection;
 pub use locomotion::animate_locomotion;

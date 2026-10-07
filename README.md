@@ -147,7 +147,9 @@ See **[ASSETS.md](./ASSETS.md)** for where to drop 3D models and textures.
 
 | Key | Action |
 |---|---|
-| `W A S D` | Move (predicted locally, synced via `move_character`) |
+| `W A S D` | Move, camera-relative (Overgrowth-style bumper: velocity + damping) |
+| `RMB (hold)` | Mouse-look orbit; hands off and the camera trails behind you |
+| `W/A/S/D ×2` | Dodge dash in that direction (0.7 s cooldown) |
 | `LMB` | Melee swing — nearest enemy in 3 m (`attack_enemy`, 0.6 s cooldown) |
 | `E` | Pick up nearest loot in 2.5 m (`collect_loot`) |
 | `R` | Respawn at camp while dead (`respawn`) |
