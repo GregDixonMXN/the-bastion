@@ -7,6 +7,4 @@ use bevy::prelude::*;
 pub struct LocalPlayer {
     pub identity: String,
     pub username: String,
-    pub sentence_remaining: u64,
-    pub is_rogue: bool,
 }

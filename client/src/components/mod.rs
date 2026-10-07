@@ -1,9 +1,9 @@
-pub mod kaiju;
-pub mod mech;
+pub mod camp;
+pub mod character;
+pub mod enemy;
 pub mod player;
-pub mod wall;
 
-pub use kaiju::Kaiju;
-pub use mech::{LocalMech, Mech};
+pub use camp::CampProp;
+pub use character::{Character, LocalCharacter};
+pub use enemy::Enemy;
 pub use player::LocalPlayer;
-pub use wall::WallSegment;

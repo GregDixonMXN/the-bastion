@@ -1,11 +1,11 @@
-pub mod kaiju_plugin;
-pub mod mech_plugin;
+pub mod camp_plugin;
+pub mod character_plugin;
+pub mod enemy_plugin;
 pub mod spacetime_plugin;
 pub mod ui_plugin;
-pub mod wall_plugin;
 
-pub use kaiju_plugin::KaijuPlugin;
-pub use mech_plugin::MechPlugin;
+pub use camp_plugin::CampPlugin;
+pub use character_plugin::CharacterPlugin;
+pub use enemy_plugin::EnemyPlugin;
 pub use spacetime_plugin::SpacetimePlugin;
 pub use ui_plugin::UiPlugin;
-pub use wall_plugin::WallPlugin;

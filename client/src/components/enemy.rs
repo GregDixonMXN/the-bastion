@@ -2,11 +2,11 @@
 
 use bevy::prelude::*;
 
-/// Kaiju state mirrored from SpacetimeDB KaijuTable.
+/// Enemy state mirrored from SpacetimeDB EnemyTable.
 #[derive(Component, Debug, Clone)]
-pub struct Kaiju {
+pub struct Enemy {
     pub db_id: u64,
-    pub kaiju_type: String,
+    pub enemy_type: String,
     pub health: f32,
     pub max_health: f32,
 }

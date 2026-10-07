@@ -6,7 +6,7 @@ mod resources;
 mod systems;
 
 use bevy::prelude::*;
-use plugins::{KaijuPlugin, MechPlugin, SpacetimePlugin, UiPlugin, WallPlugin};
+use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, UiPlugin};
 use resources::{DbHandle, GameState};
 
 fn main() {
@@ -29,9 +29,9 @@ fn main() {
         // ── Game Plugins ──────────────────────────────────────────────────────
         .add_plugins((
             SpacetimePlugin,
-            MechPlugin,
-            WallPlugin,
-            KaijuPlugin,
+            CharacterPlugin,
+            CampPlugin,
+            EnemyPlugin,
             UiPlugin,
         ))
         // ── World Setup ───────────────────────────────────────────────────────
