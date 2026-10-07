@@ -31,6 +31,8 @@ pub mod spawn_point_table_type;
 pub mod tick_enemy_ai_reducer;
 pub mod tick_enemy_ai_schedule_table;
 pub mod tick_enemy_ai_schedule_type;
+pub mod train_focus_reducer;
+pub mod train_vitality_reducer;
 pub mod visit_healer_reducer;
 
 pub use attack_enemy_reducer::{attack_enemy, set_flags_for_attack_enemy, AttackEnemyCallbackId};
@@ -72,6 +74,10 @@ pub use tick_enemy_ai_reducer::{
 };
 pub use tick_enemy_ai_schedule_table::*;
 pub use tick_enemy_ai_schedule_type::TickEnemyAiSchedule;
+pub use train_focus_reducer::{set_flags_for_train_focus, train_focus, TrainFocusCallbackId};
+pub use train_vitality_reducer::{
+    set_flags_for_train_vitality, train_vitality, TrainVitalityCallbackId,
+};
 pub use visit_healer_reducer::{set_flags_for_visit_healer, visit_healer, VisitHealerCallbackId};
 
 #[derive(Clone, PartialEq, Debug)]
@@ -131,6 +137,12 @@ pub enum Reducer {
     TickEnemyAi {
         schedule: TickEnemyAiSchedule,
     },
+    TrainFocus {
+        character_id: u64,
+    },
+    TrainVitality {
+        character_id: u64,
+    },
     VisitHealer {
         character_id: u64,
     },
@@ -156,6 +168,8 @@ impl __sdk::Reducer for Reducer {
             Reducer::SpawnEnemy { .. } => "spawn_enemy",
             Reducer::SpawnLoot { .. } => "spawn_loot",
             Reducer::TickEnemyAi { .. } => "tick_enemy_ai",
+            Reducer::TrainFocus { .. } => "train_focus",
+            Reducer::TrainVitality { .. } => "train_vitality",
             Reducer::VisitHealer { .. } => "visit_healer",
             _ => unreachable!(),
         }
@@ -232,6 +246,17 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
             "tick_enemy_ai" => Ok(__sdk::parse_reducer_args::<
                 tick_enemy_ai_reducer::TickEnemyAiArgs,
             >("tick_enemy_ai", &value.args)?
+            .into()),
+            "train_focus" => Ok(
+                __sdk::parse_reducer_args::<train_focus_reducer::TrainFocusArgs>(
+                    "train_focus",
+                    &value.args,
+                )?
+                .into(),
+            ),
+            "train_vitality" => Ok(__sdk::parse_reducer_args::<
+                train_vitality_reducer::TrainVitalityArgs,
+            >("train_vitality", &value.args)?
             .into()),
             "visit_healer" => Ok(
                 __sdk::parse_reducer_args::<visit_healer_reducer::VisitHealerArgs>(

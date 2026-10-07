@@ -220,3 +220,63 @@ pub fn visit_healer(ctx: &ReducerContext, character_id: u64) {
         ctx.db.character().id().update(c);
     }
 }
+
+/// Camp trainer: turn gold into lasting power. Vitality (+25 max HP) and
+/// Focus (+10 max mana), each rank costing 20 more than the last, capped at
+/// ten ranks. Same stand-here-pay-this shape as the healer — the camp's
+/// whole economy runs on proximity plus gold, no menus, no vendorshaw.
+pub const TRAINER_RANGE: f32 = 8.0;
+pub const TRAIN_BASE: u64 = 15;
+pub const TRAIN_STEP: u64 = 15;
+pub const TRAIN_RANKS: u64 = 10;
+
+fn train_price(spent_ranks: u64) -> u64 {
+    TRAIN_BASE + TRAIN_STEP * spent_ranks
+}
+
+/// Core purchase shared by both tracks. `stat` selects vitality (true) or
+/// focus (false); rank derives from how far past base the stat already is.
+fn train_inner(ctx: &ReducerContext, character_id: u64, vitality: bool) {
+    use crate::tables::character::character;
+    if let Some(mut c) = ctx.db.character().id().find(&character_id) {
+        if c.owner_identity != ctx.sender || c.is_dead {
+            return;
+        }
+        let dx = c.pos_x - SPAWN_X;
+        let dz = c.pos_z - SPAWN_Z;
+        if (dx * dx + dz * dz).sqrt() > TRAINER_RANGE {
+            return;
+        }
+        let (base, step, cap) = if vitality { (100.0, 25.0, 350.0) } else { (50.0, 10.0, 150.0) };
+        let current = if vitality { c.max_health } else { c.max_mana };
+        if current >= cap {
+            log::info!("Character {} is fully trained", character_id);
+            return;
+        }
+        let ranks = ((current - base) / step).max(0.0) as u64;
+        let price = train_price(ranks);
+        if c.gold < price {
+            return;
+        }
+        c.gold -= price;
+        if vitality {
+            c.max_health += step;
+            c.health = c.max_health;
+        } else {
+            c.max_mana += step;
+            c.mana = c.max_mana;
+        }
+        ctx.db.character().id().update(c);
+        log::info!("Character {} trained ({}g)", character_id, price);
+    }
+}
+
+#[reducer]
+pub fn train_vitality(ctx: &ReducerContext, character_id: u64) {
+    train_inner(ctx, character_id, true);
+}
+
+#[reducer]
+pub fn train_focus(ctx: &ReducerContext, character_id: u64) {
+    train_inner(ctx, character_id, false);
+}

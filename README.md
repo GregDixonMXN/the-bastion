@@ -152,6 +152,7 @@ See **[ASSETS.md](./ASSETS.md)** for where to drop 3D models and textures.
 | `E` | Pick up nearest loot in 2.5 m (`collect_loot`) |
 | `R` | Respawn at camp while dead (`respawn`) |
 | `H` | Camp healer — 10g full mend within 8 m of the gate (`visit_healer`) |
+| `T` / `Y` | Camp trainer — vitality (+25 max HP) / focus (+10 max mana), 15g base +15g/rank, 10 ranks (`train_vitality`, `train_focus`) |
 
 Thornwolves den far out (55,85 and -52,88): 150 HP, harder hits, 60 XP.
 Rats near camp, wolves further — hunt within your means.

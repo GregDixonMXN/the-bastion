@@ -5,7 +5,8 @@ use std::time::Duration;
 use crate::components::{Character, Enemy, LocalCharacter, LootItem};
 use crate::generated::{
     attack_enemy_reducer::attack_enemy, collect_loot_reducer::collect_loot,
-    respawn_reducer::respawn, visit_healer_reducer::visit_healer,
+    respawn_reducer::respawn, train_focus_reducer::train_focus,
+    train_vitality_reducer::train_vitality, visit_healer_reducer::visit_healer,
 };
 use crate::resources::NetState;
 
@@ -14,7 +15,9 @@ const PICKUP_RANGE: f32 = 2.5;
 const SWING_COOLDOWN: Duration = Duration::from_millis(600);
 
 /// LMB: swing at the nearest enemy in reach. E: pick up nearby loot.
-/// R: respawn at camp while dead. H: visit the camp healer (10g, full mend).
+/// R: respawn at camp while dead. H: camp healer (10g full mend).
+/// T: train vitality (+25 max HP). Y: train focus (+10 max mana).
+/// Training costs scale per rank and happen at camp — server decides all.
 pub fn combat_input(
     mouse: Res<ButtonInput<MouseButton>>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -76,6 +79,18 @@ pub fn combat_input(
             if let Err(e) = conn.reducers.visit_healer(char_id) {
                 log::warn!("healer send failed: {e}");
             }
+        }
+    }
+
+    if keyboard.just_pressed(KeyCode::KeyT) {
+        if let Err(e) = conn.reducers.train_vitality(char_id) {
+            log::warn!("train send failed: {e}");
+        }
+    }
+
+    if keyboard.just_pressed(KeyCode::KeyY) {
+        if let Err(e) = conn.reducers.train_focus(char_id) {
+            log::warn!("train send failed: {e}");
         }
     }
 }

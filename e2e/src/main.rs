@@ -7,7 +7,7 @@ use generated::{
     loot_table::LootTableAccess, move_character_reducer::move_character,
     register_player_reducer::register_player, respawn_reducer::respawn,
     spawn_character_reducer::spawn_character, spawn_point_table::SpawnPointTableAccess,
-    DbConnection,
+    train_vitality_reducer::train_vitality, DbConnection,
 };
 use spacetimedb_sdk::{DbContext, Identity, Table, TableWithPrimaryKey};
 use std::sync::{Arc, Mutex};
@@ -15,6 +15,24 @@ use std::time::{Duration, Instant};
 
 const URL: &str = "ws://127.0.0.1:3000";
 const DB: &str = "bastionlands";
+
+/// Nearest uncollected loot within pickup reach of a character.
+/// Never grabs stale rows across the map — distance-checked like the server.
+fn nearest_loot(conn: &DbConnection, char_id: u64) -> Option<generated::loot_table_type::LootTable> {
+    let me = conn.db.character().id().find(&char_id)?;
+    conn.db
+        .loot()
+        .iter()
+        .filter(|l| !l.is_collected)
+        .map(|l| {
+            let dx = l.pos_x - me.pos_x;
+            let dz = l.pos_z - me.pos_z;
+            ((dx * dx + dz * dz).sqrt(), l)
+        })
+        .filter(|(d, _)| *d <= 2.5)
+        .min_by(|a, b| a.0.partial_cmp(&b.0).unwrap())
+        .map(|(_, l)| l)
+}
 
 fn wait_for(label: &str, timeout: Duration, mut cond: impl FnMut() -> bool) {
     let start = Instant::now();
@@ -122,12 +140,59 @@ fn main() {
     wait_for("gold loot drops", Duration::from_secs(10), || {
         conn.db.loot().iter().any(|l| !l.is_collected)
     });
-    let loot = conn.db.loot().iter().find(|l| !l.is_collected).unwrap();
+    let loot = nearest_loot(&conn, me.id).expect("fresh kill loot at our feet");
     conn.reducers.collect_loot(loot.id, me.id).unwrap();
     std::thread::sleep(Duration::from_secs(1));
     let me4 = conn.db.character().id().find(&me.id).unwrap();
     assert_eq!(me4.gold, loot.value, "gold credited");
     println!("ok — loot collected ({}g)", loot.value);
+
+    // --- two more rats: 15g total, still level 1 (75 xp) ---
+    // NOTE: match repops by home + known-dead ids, never by max id — repop
+    // lands within a tick of the kill and a max-id snapshot races it.
+    let mut dead: Vec<u64> = vec![rat.id];
+    let mut kills = 1;
+    while kills < 3 {
+        wait_for("next rat", Duration::from_secs(30), || {
+            conn.db
+                .enemy()
+                .iter()
+                .any(|e| e.home_x == 5.0 && e.home_z == 5.0 && !dead.contains(&e.id))
+        });
+        let rat = conn
+            .db
+            .enemy()
+            .iter()
+            .find(|e| e.home_x == 5.0 && e.home_z == 5.0 && !dead.contains(&e.id))
+            .unwrap();
+        for _ in 0..8 {
+            conn.reducers.attack_enemy(me.id, rat.id).unwrap();
+            std::thread::sleep(Duration::from_secs(1));
+            if conn.db.enemy().id().find(&rat.id).is_none() {
+                break;
+            }
+        }
+        assert!(conn.db.enemy().id().find(&rat.id).is_none(), "rat must die");
+        dead.push(rat.id);
+        if let Some(loot) = nearest_loot(&conn, me.id) {
+            conn.reducers.collect_loot(loot.id, me.id).unwrap();
+            std::thread::sleep(Duration::from_secs(1));
+        }
+        kills += 1;
+    }
+    let rich = conn.db.character().id().find(&me.id).unwrap();
+    assert_eq!(rich.gold, 15, "three rats pay 15g total");
+    assert_eq!(rich.level, 1, "75 xp stays level 1");
+
+    // --- trainer: walk to camp, buy vitality rank 0 (15g → +25 max HP) ---
+    conn.reducers.move_character(me.id, 0.0, 0.0).unwrap();
+    std::thread::sleep(Duration::from_secs(1));
+    conn.reducers.train_vitality(me.id).unwrap();
+    std::thread::sleep(Duration::from_secs(1));
+    let trained = conn.db.character().id().find(&me.id).unwrap();
+    assert_eq!(trained.max_health, 125.0, "training adds 25 max HP");
+    assert_eq!(trained.gold, 0, "training deducts 15g");
+    println!("ok — trainer sold vitality rank 0");
 
     // --- leash: provoke the repop, drag it past 45 m, watch it give up ---
     wait_for("repop", Duration::from_secs(30), || {
@@ -142,6 +207,9 @@ fn main() {
         .iter()
         .find(|e| e.id != rat.id && e.home_x == 5.0 && e.home_z == 5.0)
         .unwrap();
+    // Stage next to it first (we're at camp after training), then provoke.
+    conn.reducers.move_character(me.id, 5.0, 5.0).unwrap();
+    std::thread::sleep(Duration::from_secs(1));
     println!("repop rat {} — leash test", rat2.id);
     conn.reducers.attack_enemy(me.id, rat2.id).unwrap();
     std::thread::sleep(Duration::from_secs(1));
