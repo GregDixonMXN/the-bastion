@@ -5,13 +5,14 @@ use spacetimedb::{reducer, ReducerContext, Table};
 use crate::tables::enemy::enemy;
 use crate::tables::enemy::EnemyTable;
 
-/// First enemy of the game. Gloomrats infest the fields outside the starter
-/// camp — weak alone, brave in packs (pack behavior arrives with camps).
-fn stats(enemy_type: &str) -> (f32, f32, f32, u64, u64) {
+/// First enemies of the game. Gloomrats infest the near fields; thornwolves
+/// range further out — tougher, faster, richer. Shared stat block so spawn
+/// points and manual spawns agree.
+pub(crate) fn stats(enemy_type: &str) -> (f32, f32, f32, u64, u64) {
     // health, speed, damage, xp, gold
     match enemy_type {
-        "gloomrat" => (60.0, 3.0, 8.0, 25, 5),
-        _ => (60.0, 3.0, 8.0, 25, 5), // unknown keys spawn a gloomrat
+        "thornwolf" => (150.0, 3.5, 14.0, 60, 12),
+        _ => (60.0, 3.0, 8.0, 25, 5), // "gloomrat" default
     }
 }
 

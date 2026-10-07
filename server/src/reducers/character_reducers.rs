@@ -192,3 +192,31 @@ pub fn respawn(ctx: &ReducerContext, character_id: u64) {
         ctx.db.character().id().update(c);
     }
 }
+
+/// Camp healer: stand near the gate (8 m of spawn) and, for 10 gold, mend
+/// to full. The first camp service — vendors and trainers follow the same
+/// stand-here-pay-this shape.
+pub const HEALER_RANGE: f32 = 8.0;
+pub const HEALER_PRICE: u64 = 10;
+
+#[reducer]
+pub fn visit_healer(ctx: &ReducerContext, character_id: u64) {
+    use crate::tables::character::character;
+    if let Some(mut c) = ctx.db.character().id().find(&character_id) {
+        if c.owner_identity != ctx.sender || c.is_dead {
+            return;
+        }
+        let dx = c.pos_x - SPAWN_X;
+        let dz = c.pos_z - SPAWN_Z;
+        if (dx * dx + dz * dz).sqrt() > HEALER_RANGE {
+            return; // the healer stays by the gate — come to them
+        }
+        if c.gold < HEALER_PRICE {
+            return;
+        }
+        c.gold -= HEALER_PRICE;
+        c.health = c.max_health;
+        c.mana = c.max_mana;
+        ctx.db.character().id().update(c);
+    }
+}

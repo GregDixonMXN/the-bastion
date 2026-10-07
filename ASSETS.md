@@ -18,7 +18,8 @@ client/assets/
 │   ├── characters/
 │   │   └── adventurer.glb        ← Cesium Man stand-in (CC-BY, see CREDITS.md)
 │   ├── enemies/
-│   │   └── gloomrat.glb          ← Fox stand-in (CC0/CC-BY, see CREDITS.md)
+│   │   ├── gloomrat.glb          ← Fox stand-in (CC0/CC-BY, see CREDITS.md)
+│   │   └── thornwolf.glb         ← wanted (fox scaled 1.6× for now)
 │   ├── environment/
 │   │   ├── town_gate.glb         ← wanted (cube placeholder for now)
 │   │   └── tent.glb              ← wanted (cube placeholder for now)

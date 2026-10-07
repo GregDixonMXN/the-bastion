@@ -151,6 +151,10 @@ See **[ASSETS.md](./ASSETS.md)** for where to drop 3D models and textures.
 | `LMB` | Melee swing — nearest enemy in 3 m (`attack_enemy`, 0.6 s cooldown) |
 | `E` | Pick up nearest loot in 2.5 m (`collect_loot`) |
 | `R` | Respawn at camp while dead (`respawn`) |
+| `H` | Camp healer — 10g full mend within 8 m of the gate (`visit_healer`) |
+
+Thornwolves den far out (55,85 and -52,88): 150 HP, harder hits, 60 XP.
+Rats near camp, wolves further — hunt within your means.
 
 Local dev runs against `ws://127.0.0.1:3000`, module `bastionlands`.
 Identities are fresh on every launch for now (no token persistence yet).

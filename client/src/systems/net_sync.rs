@@ -114,9 +114,13 @@ pub fn drain_net_events(
             }
             NetEvent::Enemy(row) => {
                 let ground = terrain_height(row.pos_x, row.pos_z);
+                // Thornwolf uses the fox stand-in scaled up until its own
+                // model lands (see ASSETS.md).
+                let scale = if row.enemy_type == "thornwolf" { 1.6 } else { 1.0 };
                 if let Some((entity, _)) = enemies.iter().find(|(_, e)| e.db_id == row.id) {
                     commands.entity(entity).insert((
-                        Transform::from_xyz(row.pos_x, ground + 0.4, row.pos_z),
+                        Transform::from_xyz(row.pos_x, ground + 0.4 * scale, row.pos_z)
+                            .with_scale(Vec3::splat(scale)),
                         Enemy {
                             db_id: row.id,
                             enemy_type: row.enemy_type.clone(),
@@ -127,7 +131,8 @@ pub fn drain_net_events(
                 } else {
                     commands.spawn((
                         SceneRoot(asset_server.load("models/enemies/gloomrat.glb#Scene0")),
-                        Transform::from_xyz(row.pos_x, ground + 0.4, row.pos_z),
+                        Transform::from_xyz(row.pos_x, ground + 0.4 * scale, row.pos_z)
+                            .with_scale(Vec3::splat(scale)),
                         Enemy {
                             db_id: row.id,
                             enemy_type: row.enemy_type.clone(),

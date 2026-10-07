@@ -32,34 +32,20 @@ pub fn define_spawn_point(
 }
 
 /// Seeds the starter field: five Gloomrat points in a loose ring outside
-/// camp, repopping every two minutes. Idempotent — reruns only fill gaps.
-/// Also arms the 2 s enemy-AI schedule on first run.
+/// camp (2-minute repop) plus two Thornwolf dens further out (3-minute
+/// repop). Idempotent per enemy type — reruns only fill gaps. Also arms the
+/// 2 s enemy-AI schedule on first run.
 #[reducer]
 pub fn init_world(ctx: &ReducerContext) {
     use crate::tables::spawn::spawn_point;
 
-    let existing: usize = ctx.db.spawn_point().iter().count();
-    if existing == 0 {
-        for (x, z) in [
-            (18.0, 35.0),
-            (-20.0, 40.0),
-            (30.0, 55.0),
-            (-8.0, 60.0),
-            (8.0, 75.0),
-        ] {
-            ctx.db.spawn_point().insert(SpawnPointTable {
-                id: 0,
-                enemy_type: "gloomrat".to_string(),
-                pos_x: x,
-                pos_y: 0.0,
-                pos_z: z,
-                respawn_secs: 120,
-                alive_enemy_id: None,
-                cooldown_ticks: 0,
-            });
-        }
-        log::info!("Starter field seeded: 5 gloomrat spawn points");
-    }
+    seed_points(
+        ctx,
+        "gloomrat",
+        &[(18.0, 35.0), (-20.0, 40.0), (30.0, 55.0), (-8.0, 60.0), (8.0, 75.0)],
+        120,
+    );
+    seed_points(ctx, "thornwolf", &[(55.0, 85.0), (-52.0, 88.0)], 180);
 
     // Arm the AI schedule (one row — reruns are no-ops while it lives).
     if ctx.db.tick_enemy_ai_schedule().iter().count() == 0 {
@@ -113,12 +99,45 @@ pub fn tick_spawns(ctx: &ReducerContext) {
     }
 }
 
+fn seed_points(
+    ctx: &ReducerContext,
+    enemy_type: &str,
+    points: &[(f32, f32)],
+    respawn_secs: u64,
+) {
+    use crate::tables::spawn::spawn_point;
+    use crate::tables::spawn::SpawnPointTable;
+
+    let have: usize = ctx
+        .db
+        .spawn_point()
+        .iter()
+        .filter(|p| p.enemy_type == enemy_type)
+        .count();
+    if have > 0 {
+        return;
+    }
+    for (x, z) in points {
+        ctx.db.spawn_point().insert(SpawnPointTable {
+            id: 0,
+            enemy_type: enemy_type.to_string(),
+            pos_x: *x,
+            pos_y: 0.0,
+            pos_z: *z,
+            respawn_secs,
+            alive_enemy_id: None,
+            cooldown_ticks: 0,
+        });
+    }
+    log::info!("Seeded {} {enemy_type} spawn points", points.len());
+}
+
 fn spawn_for_point(ctx: &ReducerContext, point: &SpawnPointTable) -> u64 {
     use crate::tables::enemy::enemy;
     use crate::tables::enemy::EnemyTable;
 
-    // Gloomrat is the only roster entry; unknown keys fall back to it.
-    let (health, speed, damage, xp, gold) = (60.0, 3.0, 8.0, 25, 5);
+    let (health, speed, damage, xp, gold) =
+        crate::reducers::enemy_reducers::stats(&point.enemy_type);
     let row = ctx.db.enemy().insert(EnemyTable {
         id: 0,
         enemy_type: point.enemy_type.clone(),

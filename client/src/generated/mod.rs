@@ -31,6 +31,7 @@ pub mod spawn_point_table_type;
 pub mod tick_enemy_ai_reducer;
 pub mod tick_enemy_ai_schedule_table;
 pub mod tick_enemy_ai_schedule_type;
+pub mod visit_healer_reducer;
 
 pub use attack_enemy_reducer::{attack_enemy, set_flags_for_attack_enemy, AttackEnemyCallbackId};
 pub use character_table::*;
@@ -71,6 +72,7 @@ pub use tick_enemy_ai_reducer::{
 };
 pub use tick_enemy_ai_schedule_table::*;
 pub use tick_enemy_ai_schedule_type::TickEnemyAiSchedule;
+pub use visit_healer_reducer::{set_flags_for_visit_healer, visit_healer, VisitHealerCallbackId};
 
 #[derive(Clone, PartialEq, Debug)]
 
@@ -129,6 +131,9 @@ pub enum Reducer {
     TickEnemyAi {
         schedule: TickEnemyAiSchedule,
     },
+    VisitHealer {
+        character_id: u64,
+    },
 }
 
 impl __sdk::InModule for Reducer {
@@ -151,6 +156,7 @@ impl __sdk::Reducer for Reducer {
             Reducer::SpawnEnemy { .. } => "spawn_enemy",
             Reducer::SpawnLoot { .. } => "spawn_loot",
             Reducer::TickEnemyAi { .. } => "tick_enemy_ai",
+            Reducer::VisitHealer { .. } => "visit_healer",
             _ => unreachable!(),
         }
     }
@@ -227,6 +233,13 @@ impl TryFrom<__ws::ReducerCallInfo<__ws::BsatnFormat>> for Reducer {
                 tick_enemy_ai_reducer::TickEnemyAiArgs,
             >("tick_enemy_ai", &value.args)?
             .into()),
+            "visit_healer" => Ok(
+                __sdk::parse_reducer_args::<visit_healer_reducer::VisitHealerArgs>(
+                    "visit_healer",
+                    &value.args,
+                )?
+                .into(),
+            ),
             unknown => {
                 Err(
                     __sdk::InternalError::unknown_name("reducer", unknown, "ReducerCallInfo")
