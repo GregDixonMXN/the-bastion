@@ -7,7 +7,7 @@ mod resources;
 mod systems;
 
 use bevy::prelude::*;
-use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, UiPlugin};
+use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, TerrainPlugin, UiPlugin};
 use resources::GameState;
 
 fn main() {
@@ -29,6 +29,7 @@ fn main() {
         // ── Game Plugins ──────────────────────────────────────────────────────
         .add_plugins((
             SpacetimePlugin,
+            TerrainPlugin,
             CharacterPlugin,
             CampPlugin,
             EnemyPlugin,
@@ -74,15 +75,16 @@ fn setup_world(
         Name::new("Sun"),
     ));
 
-    // Ground plane
+    // Ground plane — flat starter disc under camp; the terrain plugin owns
+    // the real landscape.
     commands.spawn((
-        Mesh3d(meshes.add(Plane3d::default().mesh().size(200.0, 200.0))),
+        Mesh3d(meshes.add(Plane3d::default().mesh().size(30.0, 30.0))),
         MeshMaterial3d(materials.add(StandardMaterial {
-            base_color: Color::srgb(0.15, 0.2, 0.15),
+            base_color: Color::srgb(0.25, 0.42, 0.22),
             perceptual_roughness: 0.9,
             ..default()
         })),
-        Transform::from_xyz(0.0, 0.0, 0.0),
-        Name::new("Ground"),
+        Transform::from_xyz(0.0, 0.02, 0.0),
+        Name::new("CampGround"),
     ));
 }

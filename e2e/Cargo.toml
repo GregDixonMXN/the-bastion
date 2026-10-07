@@ -7,6 +7,10 @@ edition = "2021"
 name = "playtest"
 path = "src/main.rs"
 
+[[bin]]
+name = "online"
+path = "src/online.rs"
+
 [dependencies]
 spacetimedb-sdk = { workspace = true }
 log = { workspace = true }

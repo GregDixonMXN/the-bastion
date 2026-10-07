@@ -16,18 +16,14 @@ before they are accepted — file layout alone is not approval.
 client/assets/
 ├── models/
 │   ├── characters/
-│   │   └── adventurer.glb        ← base playable character
+│   │   └── adventurer.glb        ← Cesium Man stand-in (CC-BY, see CREDITS.md)
 │   ├── enemies/
-│   │   └── gloomrat.glb          ← first enemy
+│   │   └── gloomrat.glb          ← Fox stand-in (CC0/CC-BY, see CREDITS.md)
 │   ├── environment/
-│   │   ├── town_gate.glb         ← starter camp gate / respawn point
-│   │   ├── tent.glb              ← camp dressing
-│   │   └── ground_tile.glb       ← optional ground tile
+│   │   ├── town_gate.glb         ← wanted (cube placeholder for now)
+│   │   └── tent.glb              ← wanted (cube placeholder for now)
 │   └── loot/
-│       ├── gold_cache.glb
-│       ├── pelt.glb
-│       ├── herb.glb
-│       └── trinket.glb
+│       └── gold_cache.glb        ← wanted (cube placeholder for now)
 ├── textures/
 │   ├── characters/
 │   │   └── adventurer_albedo.png

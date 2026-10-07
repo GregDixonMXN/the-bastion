@@ -97,6 +97,21 @@ window: register → spawn → teleport rejection → hunt → XP → loot → r
 leash break → death → respawn. It defines its own 10-second spawn point, so
 the shared field is untouched. Takes ~2 minutes.
 
+`cargo run -p e2e --bin online` proves the multiplayer core: two connections
+join, see each other's characters, and observe each other's movement.
+
+---
+
+## World visuals
+
+Procedural heightmap terrain (vertex-colored meadow/rock/sand, water ring,
+scattered pines and rocks — all deterministic, no downloads), starter camp
+dressing, and CC-BY/CC0 stand-in models (see [CREDITS.md](./CREDITS.md)):
+Cesium Man as the Adventurer, the animated Fox as the Gloomrat. Dev note:
+run the client with `target/debug/assets` linked to `client/assets`
+(`ln -s ../../client/assets target/debug/assets`) — Bevy resolves assets
+relative to the executable.
+
 ---
 
 ## Generate Client SDK Types
