@@ -2,3 +2,4 @@
 *.generated.rs
 .spacetime/
 dist/
+client/assets/assets
