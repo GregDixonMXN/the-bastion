@@ -123,6 +123,10 @@ See **[ASSETS.md](./ASSETS.md)** for where to drop 3D models and textures.
 
 | Key | Action |
 |---|---|
-| `W A S D` | Move |
-| Mouse | Aim (stub) |
-| `LMB` | Melee swing (stub — calls `attack_enemy` from Phase 2) |
+| `W A S D` | Move (predicted locally, synced via `move_character`) |
+| `LMB` | Melee swing — nearest enemy in 3 m (`attack_enemy`, 0.6 s cooldown) |
+| `E` | Pick up nearest loot in 2.5 m (`collect_loot`) |
+| `R` | Respawn at camp while dead (`respawn`) |
+
+Local dev runs against `ws://127.0.0.1:3000`, module `bastionlands`.
+Identities are fresh on every launch for now (no token persistence yet).

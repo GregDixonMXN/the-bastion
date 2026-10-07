@@ -2,6 +2,7 @@
 
 use bevy::prelude::*;
 use crate::components::{Character, LocalCharacter};
+use crate::systems::combat_input;
 use crate::systems::player_input;
 use crate::systems::camera::follow_camera;
 
@@ -10,7 +11,7 @@ pub struct CharacterPlugin;
 impl Plugin for CharacterPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, spawn_player_character)
-            .add_systems(Update, (player_input::player_input, follow_camera, log_health));
+            .add_systems(Update, (player_input::player_input, combat_input, follow_camera, log_health));
     }
 }
 
@@ -32,6 +33,8 @@ fn spawn_player_character(
             name: "Adventurer".to_string(),
             class: "adventurer".to_string(),
             level: 1,
+            xp: 0,
+            gold: 0,
             health: 100.0,
             max_health: 100.0,
             mana: 50.0,

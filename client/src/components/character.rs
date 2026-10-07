@@ -9,6 +9,8 @@ pub struct Character {
     pub name: String,
     pub class: String,
     pub level: u32,
+    pub xp: u64,
+    pub gold: u64,
     pub health: f32,
     pub max_health: f32,
     pub mana: f32,

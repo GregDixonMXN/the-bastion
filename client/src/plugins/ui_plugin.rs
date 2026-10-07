@@ -1,7 +1,7 @@
 #![allow(dead_code, unused_imports)]
 
 use bevy::prelude::*;
-use crate::components::{Character, LocalCharacter, LocalPlayer};
+use crate::components::{Character, LocalCharacter};
 
 pub struct UiPlugin;
 
@@ -26,7 +26,7 @@ fn spawn_hud(mut commands: Commands) {
         })
         .with_children(|parent| {
             parent.spawn((
-                Text::new("Lv 1 · HP --% · Gold 0"),
+                Text::new("Connecting…"),
                 TextFont {
                     font_size: 20.0,
                     ..default()
@@ -37,7 +37,7 @@ fn spawn_hud(mut commands: Commands) {
         });
 }
 
-/// Refreshes HUD each frame from component data.
+/// Refreshes HUD each frame from the local character.
 fn update_hud(
     character_query: Query<&Character, With<LocalCharacter>>,
     mut hud_query: Query<&mut Text, With<HudText>>,
@@ -46,10 +46,11 @@ fn update_hud(
 
     if let Ok(character) = character_query.single() {
         let hp_pct = (character.health / character.max_health * 100.0) as u32;
-        let dead_tag = if character.is_dead { "  [DEAD — respawn at camp]" } else { "" };
+        let xp_need = character.level as u64 * 100;
+        let dead_tag = if character.is_dead { "  [DEAD — press R]" } else { "" };
         hud_text.0 = format!(
-            "Lv {} · HP {}%{}{}",
-            character.level, hp_pct, dead_tag, ""
+            "{} · Lv {} · XP {}/{} · HP {}% · {}g{}",
+            character.name, character.level, character.xp, xp_need, hp_pct, character.gold, dead_tag
         );
     }
 }

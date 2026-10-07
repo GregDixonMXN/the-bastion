@@ -1,13 +1,14 @@
 #![allow(dead_code, unused_imports)]
 
 mod components;
+mod generated;
 mod plugins;
 mod resources;
 mod systems;
 
 use bevy::prelude::*;
 use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, UiPlugin};
-use resources::{DbHandle, GameState};
+use resources::GameState;
 
 fn main() {
     env_logger::init();
@@ -25,7 +26,6 @@ fn main() {
         }))
         // ── State ─────────────────────────────────────────────────────────────
         .init_state::<GameState>()
-        .insert_resource(DbHandle::default())
         // ── Game Plugins ──────────────────────────────────────────────────────
         .add_plugins((
             SpacetimePlugin,

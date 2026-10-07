@@ -1,5 +1,5 @@
-pub mod db_handle;
 pub mod game_state;
+pub mod net;
 
-pub use db_handle::DbHandle;
 pub use game_state::GameState;
+pub use net::{NetEvent, NetState};
