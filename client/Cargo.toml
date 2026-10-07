@@ -9,6 +9,7 @@ path = "src/main.rs"
 
 [dependencies]
 bevy = { workspace = true }
+bevy_image = { version = "0.16", features = ["jpeg", "png"] }
 spacetimedb-sdk = { workspace = true }
 serde = { workspace = true }
 log = { workspace = true }
