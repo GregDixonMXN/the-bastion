@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::components::{Character, Enemy, LocalCharacter, LootItem};
 use crate::plugins::terrain_plugin::terrain_height;
 use crate::resources::{GameState, NetEvent, NetState};
+use super::locomotion::Locomotion;
 
 /// Drains the SpacetimeDB event bridge each frame and mirrors rows into
 /// entities. Server state is authoritative: stats always apply, transforms
@@ -15,8 +16,9 @@ pub fn drain_net_events(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut net: ResMut<NetState>,
     mut next_state: ResMut<NextState<GameState>>,
-    characters: Query<(Entity, &Character)>,
-    enemies: Query<(Entity, &Enemy)>,
+    mut characters: Query<(Entity, &Character)>,
+    mut enemies: Query<(Entity, &Enemy)>,
+    mut locos: Query<&mut Locomotion>,
     loot: Query<(Entity, &LootItem)>,
     local: Query<Entity, With<LocalCharacter>>,
 ) {
@@ -59,16 +61,22 @@ pub fn drain_net_events(
                         });
                     }
                     if !is_ours {
+                        let ground = terrain_height(row.pos_x, row.pos_z);
                         commands.entity(entity).insert(Transform::from_xyz(
                             row.pos_x,
-                            terrain_height(row.pos_x, row.pos_z),
+                            ground,
                             row.pos_z,
                         ));
+                        if let Ok(mut l) = locos.get_mut(entity) {
+                            l.base_y = ground;
+                        }
                     }
                     if row.is_dead && is_ours {
                         log::info!("You died — press R at camp to respawn");
                     }
                 } else {
+                    let ground = terrain_height(row.pos_x, row.pos_z);
+                    let pos = Vec3::new(row.pos_x, ground, row.pos_z);
                     let entity = commands
                         .spawn((
                             SceneRoot(
@@ -76,7 +84,7 @@ pub fn drain_net_events(
                             ),
                             Transform::from_xyz(
                                 row.pos_x,
-                                terrain_height(row.pos_x, row.pos_z),
+                                ground,
                                 row.pos_z,
                             ),
                             Character {
@@ -93,6 +101,7 @@ pub fn drain_net_events(
                                 is_dead: row.is_dead,
                             },
                             Name::new(format!("Character-{}", row.name)),
+                            Locomotion::new(ground, pos, 0.10),
                         ))
                         .id();
                     if is_ours && local.is_empty() {
@@ -118,8 +127,9 @@ pub fn drain_net_events(
                 // model lands (see ASSETS.md).
                 let scale = if row.enemy_type == "thornwolf" { 1.6 } else { 1.0 };
                 if let Some((entity, _)) = enemies.iter().find(|(_, e)| e.db_id == row.id) {
+                    let base = ground + 0.4 * scale;
                     commands.entity(entity).insert((
-                        Transform::from_xyz(row.pos_x, ground + 0.4 * scale, row.pos_z)
+                        Transform::from_xyz(row.pos_x, base, row.pos_z)
                             .with_scale(Vec3::splat(scale)),
                         Enemy {
                             db_id: row.id,
@@ -128,10 +138,15 @@ pub fn drain_net_events(
                             max_health: row.max_health,
                         },
                     ));
+                    if let Ok(mut l) = locos.get_mut(entity) {
+                        l.base_y = base;
+                    }
                 } else {
+                    let base = ground + 0.4 * scale;
+                    let pos = Vec3::new(row.pos_x, base, row.pos_z);
                     commands.spawn((
                         SceneRoot(asset_server.load("models/enemies/gloomrat.glb#Scene0")),
-                        Transform::from_xyz(row.pos_x, ground + 0.4 * scale, row.pos_z)
+                        Transform::from_xyz(row.pos_x, base, row.pos_z)
                             .with_scale(Vec3::splat(scale)),
                         Enemy {
                             db_id: row.id,
@@ -140,6 +155,7 @@ pub fn drain_net_events(
                             max_health: row.max_health,
                         },
                         Name::new(format!("Enemy-{}", row.enemy_type)),
+                        Locomotion::new(base, pos, 0.15),
                     ));
                 }
             }

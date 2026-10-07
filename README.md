@@ -157,4 +157,6 @@ Thornwolves den far out (55,85 and -52,88): 150 HP, harder hits, 60 XP.
 Rats near camp, wolves further — hunt within your means.
 
 Local dev runs against `ws://127.0.0.1:3000`, module `bastionlands`.
-Identities are fresh on every launch for now (no token persistence yet).
+Identity tokens persist at `~/.local/share/bastionlands/token` — one launch,
+one Wanderer, forever. Movement animates procedurally (bob + lean); glTF clip
+playback arrives with the asset pipeline.
