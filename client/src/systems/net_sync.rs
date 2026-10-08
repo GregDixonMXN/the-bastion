@@ -4,6 +4,7 @@ use bevy::prelude::*;
 use crate::components::{Character, Enemy, LocalCharacter, LootItem};
 use crate::plugins::terrain_plugin::terrain_height;
 use crate::resources::{GameState, NetEvent, NetState};
+use super::animation::NeedsClips;
 use super::locomotion::Locomotion;
 
 /// Drains the SpacetimeDB event bridge each frame and mirrors rows into
@@ -20,7 +21,6 @@ pub fn drain_net_events(
     mut enemies: Query<(Entity, &Enemy)>,
     mut locos: Query<&mut Locomotion>,
     loot: Query<(Entity, &LootItem)>,
-    local: Query<Entity, With<LocalCharacter>>,
 ) {
     let events: Vec<NetEvent> = {
         let rx = net.rx.lock().unwrap();
@@ -102,12 +102,29 @@ pub fn drain_net_events(
                             },
                             Name::new(format!("Character-{}", row.name)),
                             Locomotion::new(ground, pos, 0.10),
+                            NeedsClips,
                         ))
                         .id();
-                    if is_ours && local.is_empty() {
-                        commands.entity(entity).insert(LocalCharacter);
-                        net.own_character_id = Some(row.id);
-                        log::info!("Local character bound: {} (id {})", row.name, row.id);
+                    if is_ours {
+                        // Exactly one local tag per session: newest owned row
+                        // wins (batch delivery would otherwise tag them all,
+                        // breaking every `.single()` downstream).
+                        let take = match net.own_character_id {
+                            None => true,
+                            Some(cur) => row.id > cur,
+                        };
+                        if take {
+                            if let Some(cur) = net.own_character_id {
+                                for (tagged, c) in &characters {
+                                    if c.db_id == cur {
+                                        commands.entity(tagged).remove::<LocalCharacter>();
+                                    }
+                                }
+                            }
+                            commands.entity(entity).insert(LocalCharacter);
+                            net.own_character_id = Some(row.id);
+                            log::info!("Local character bound: {} (id {})", row.name, row.id);
+                        }
                     }
                 }
             }
@@ -156,6 +173,7 @@ pub fn drain_net_events(
                         },
                         Name::new(format!("Enemy-{}", row.enemy_type)),
                         Locomotion::new(base, pos, 0.15),
+                        NeedsClips,
                     ));
                 }
             }

@@ -9,6 +9,7 @@ use crate::generated::{
     train_vitality_reducer::train_vitality, visit_healer_reducer::visit_healer,
 };
 use crate::resources::NetState;
+use super::animation::AttackFlash;
 
 const MELEE_RANGE: f32 = 3.0;
 const PICKUP_RANGE: f32 = 2.5;
@@ -19,16 +20,17 @@ const SWING_COOLDOWN: Duration = Duration::from_millis(600);
 /// T: train vitality (+25 max HP). Y: train focus (+10 max mana).
 /// Training costs scale per rank and happen at camp — server decides all.
 pub fn combat_input(
+    mut commands: Commands,
     mouse: Res<ButtonInput<MouseButton>>,
     keyboard: Res<ButtonInput<KeyCode>>,
     net: Res<NetState>,
-    local: Query<(&Transform, &Character), With<LocalCharacter>>,
+    local: Query<(Entity, &Transform, &Character), With<LocalCharacter>>,
     enemies: Query<(&Transform, &Enemy), Without<LocalCharacter>>,
     loot: Query<(&Transform, &LootItem)>,
 ) {
     let Some(conn) = net.conn.as_ref() else { return };
     let Some(char_id) = net.own_character_id else { return };
-    let Ok((transform, character)) = local.single() else { return };
+    let Ok((local_entity, transform, character)) = local.single() else { return };
     if character.is_dead && !keyboard.just_pressed(KeyCode::KeyR) {
         return;
     }
@@ -53,8 +55,11 @@ pub fn combat_input(
             }
         }
         if let Some((_, enemy_id)) = best {
-            if let Err(e) = conn.reducers.attack_enemy(char_id, enemy_id) {
-                log::warn!("attack send failed: {e}");
+            if conn.reducers.attack_enemy(char_id, enemy_id).is_ok() {
+                // Swing clip plays through once; the drive system picks it up.
+                commands.entity(local_entity).insert(AttackFlash { t: 0.7 });
+            } else {
+                log::warn!("attack send failed");
             }
         }
     }

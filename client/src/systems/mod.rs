@@ -1,3 +1,4 @@
+pub mod animation;
 pub mod camera;
 pub mod combat;
 pub mod connection;
@@ -5,6 +6,7 @@ pub mod locomotion;
 pub mod net_sync;
 pub mod player_input;
 
+pub use animation::AnimationPlugin;
 pub use camera::orbit_camera;
 pub use combat::combat_input;
 pub use connection::initiate_connection;

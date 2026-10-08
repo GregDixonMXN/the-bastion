@@ -9,6 +9,7 @@ mod systems;
 use bevy::prelude::*;
 use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, TerrainPlugin, UiPlugin};
 use resources::GameState;
+use systems::animation::AnimationPlugin;
 use systems::camera::{FacingCam, OrbitCam};
 
 fn main() {
@@ -33,6 +34,7 @@ fn main() {
         .add_plugins((
             SpacetimePlugin,
             TerrainPlugin,
+            AnimationPlugin,
             CharacterPlugin,
             CampPlugin,
             EnemyPlugin,
