@@ -6,7 +6,6 @@ use serde::Deserialize;
 use std::collections::HashMap;
 
 use crate::components::{Character, Enemy, LocalCharacter};
-use crate::plugins::terrain_plugin::terrain_height;
 use super::locomotion::Locomotion;
 
 /// Overgrowth-style animation, owned end to end: a Blender-baked pose bank
@@ -316,9 +315,7 @@ fn drive_rigs(
             rig.clip = want;
             rig.time = 0.0;
             rig.blend = 0.0;
-            if want == Clip::Attack {
-                log::info!("root clip Attack");
-            }
+            log::info!("clip -> {:?}", want);
         }
         rig.time += dt;
         let dur = bank.duration(rig.clip);
@@ -522,7 +519,7 @@ fn solve_one_leg(
             return;
         };
         let (h, a) = (h_glob.translation(), a_glob.translation());
-        let ground = terrain_height(a.x, a.z) + 0.10;
+        let ground = 0.10; // flat world until the heightmap pass returns
         if a.y > ground + 0.25 {
             return; // swing phase — clip owns the foot
         }

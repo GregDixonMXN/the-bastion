@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use crate::components::{Character, Enemy, LocalCharacter, LootItem};
-use crate::plugins::terrain_plugin::terrain_height;
 use crate::resources::{GameState, NetEvent, NetState};
 use super::animation::NeedsRig;
 use super::locomotion::Locomotion;
@@ -62,7 +61,7 @@ pub fn drain_net_events(
                         });
                     }
                     if !is_ours {
-                        let ground = terrain_height(row.pos_x, row.pos_z);
+                        let ground = 0.0;
                         commands.entity(entity).insert(Transform::from_xyz(
                             row.pos_x,
                             ground,
@@ -76,7 +75,7 @@ pub fn drain_net_events(
                         log::info!("You died — press R at camp to respawn");
                     }
                 } else {
-                    let ground = terrain_height(row.pos_x, row.pos_z);
+                    let ground = 0.0;
                     let pos = Vec3::new(row.pos_x, ground, row.pos_z);
                     let entity = commands
                         .spawn((
@@ -141,7 +140,7 @@ pub fn drain_net_events(
                 }
             }
             NetEvent::Enemy(row) => {
-                let ground = terrain_height(row.pos_x, row.pos_z);
+                let ground = 0.0;
                 // Thornwolf uses the fox stand-in scaled up until its own
                 // model lands (see ASSETS.md).
                 let scale = if row.enemy_type == "thornwolf" { 1.6 } else { 1.0 };
@@ -205,7 +204,7 @@ pub fn drain_net_events(
                         emissive: Color::srgb(0.6, 0.45, 0.05).into(),
                         ..default()
                     })),
-                    Transform::from_xyz(row.pos_x, terrain_height(row.pos_x, row.pos_z) + 0.25, row.pos_z),
+                    Transform::from_xyz(row.pos_x, 0.0 + 0.25, row.pos_z),
                     LootItem {
                         db_id: row.id,
                         loot_type: row.loot_type.clone(),

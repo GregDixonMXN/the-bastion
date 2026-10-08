@@ -26,7 +26,7 @@ pub fn player_input(
     mut net: ResMut<NetState>,
     mut query: Query<(&mut Transform, &Character, &mut Locomotion), With<LocalCharacter>>,
 ) {
-    let Ok((mut transform, character, mut loco)) = query.single_mut() else { return };
+    let Ok((transform, character, mut loco)) = query.single_mut() else { return };
 
     if character.is_dead {
         return; // dead — press R to respawn at camp

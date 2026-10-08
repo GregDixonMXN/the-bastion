@@ -2,7 +2,6 @@
 
 use bevy::prelude::*;
 use crate::components::CampProp;
-use super::terrain_plugin::terrain_height;
 
 pub struct CampPlugin;
 
@@ -32,11 +31,10 @@ fn spawn_starter_camp(
 
     // Gate posts at the spawn point.
     for x in [-3.0, 3.0] {
-        let h = terrain_height(x, 0.0);
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(0.8, 6.0, 0.8))),
             MeshMaterial3d(wood.clone()),
-            Transform::from_xyz(x, h + 3.0, 0.0),
+            Transform::from_xyz(x, 3.0, 0.0),
             CampProp {
                 prop_id: format!("gate-post-{x}"),
                 kind: "gate".to_string(),
@@ -47,7 +45,7 @@ fn spawn_starter_camp(
     commands.spawn((
         Mesh3d(meshes.add(Cuboid::new(7.6, 0.8, 0.8))),
         MeshMaterial3d(wood.clone()),
-        Transform::from_xyz(0.0, terrain_height(0.0, 0.0) + 6.2, 0.0),
+        Transform::from_xyz(0.0, 6.2, 0.0),
         CampProp {
             prop_id: "gate-beam".to_string(),
             kind: "gate".to_string(),
@@ -63,7 +61,7 @@ fn spawn_starter_camp(
         commands.spawn((
             Mesh3d(meshes.add(Cuboid::new(4.0, 3.0, 4.0))),
             MeshMaterial3d(canvas.clone()),
-            Transform::from_xyz(*x, terrain_height(*x, *z) + 1.5, *z),
+            Transform::from_xyz(*x, 1.5, *z),
             CampProp {
                 prop_id: format!("tent-{i}"),
                 kind: "tent".to_string(),
