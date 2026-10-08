@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use crate::components::{Character, Enemy, LocalCharacter, LootItem};
 use crate::plugins::terrain_plugin::terrain_height;
 use crate::resources::{GameState, NetEvent, NetState};
-use super::animation::NeedsClips;
+use super::animation::NeedsRig;
 use super::locomotion::Locomotion;
 use super::style::StyleAs;
 
@@ -102,8 +102,8 @@ pub fn drain_net_events(
                                 is_dead: row.is_dead,
                             },
                             Name::new(format!("Character-{}", row.name)),
-                            Locomotion::new(ground, pos, 0.10),
-                            NeedsClips,
+                            Locomotion::new(ground, pos, 0.0),
+                            NeedsRig,
                             StyleAs::Warrior,
                         ))
                         .id();
@@ -175,7 +175,6 @@ pub fn drain_net_events(
                         },
                         Name::new(format!("Enemy-{}", row.enemy_type)),
                         Locomotion::new(base, pos, 0.15),
-                        NeedsClips,
                         StyleAs::Fox,
                     ));
                 }

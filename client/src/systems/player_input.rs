@@ -8,16 +8,14 @@ use crate::resources::NetState;
 use crate::systems::camera::FacingCam;
 use super::locomotion::Locomotion;
 
-/// Overgrowth-style bumper controller: camera-relative acceleration with
-/// exponential damping (weight, not teleport Glide), yaw that follows
-/// forward motion but holds on backpedal, and double-tap dodge dashes.
-/// Positions still sync to the server under the 15 m/step rule.
-pub const TOP_SPEED: f32 = 6.0;
-const ACCEL: f32 = 60.0;
-const DAMPING: f32 = 10.0;
-const DODGE_TIME: f32 = 0.22;
-const DODGE_CD: f32 = 0.7;
-const DODGE_MULT: f32 = 2.3;
+/// Root-motion controller: input steers facing and selects gait, the
+/// animation's root displacement moves the body. Intent velocity mirrors
+/// world speed for clip selection, camera trail, and sync throttle.
+/// Shift sprints (run gait). Positions sync under the 15 m/step rule.
+pub const WALK_SPEED: f32 = 1.61;
+pub const RUN_SPEED: f32 = 4.04;
+pub const DODGE_TIME: f32 = 0.22;
+pub const DODGE_CD: f32 = 0.7;
 const SYNC_DISTANCE: f32 = 0.5;
 const SYNC_INTERVAL: Duration = Duration::from_millis(200);
 
@@ -79,27 +77,28 @@ pub fn player_input(
     }
 
     if loco.dodge_t > 0.0 {
-        // Dash: fixed burst, steering locked.
+        // Dash: intent burst along the tapped direction, steering locked.
+        // Root motion triples the run displacement to match.
         loco.dodge_t -= dt;
-        loco.vel = loco.dodge_dir * TOP_SPEED * DODGE_MULT;
+        loco.vel = loco.dodge_dir * RUN_SPEED * 3.0;
+        loco.yaw = loco.dodge_dir.x.atan2(loco.dodge_dir.z);
     } else {
-        loco.vel += wish * ACCEL * dt;
-        loco.vel *= (-DAMPING * dt).exp();
-        let speed = loco.vel.length();
-        if speed > TOP_SPEED {
-            loco.vel *= TOP_SPEED / speed;
-        }
-    }
-    transform.translation += loco.vel * dt;
-
-    // Facing: follow velocity when moving forward-ish; backpedal and strafes
-    // hold facing (and with it, the trailing camera). Rotation itself is
-    // composed by locomotion — here we only steer `yaw`.
-    let speed = loco.vel.length();
-    if speed > 0.5 {
-        let forwardness = loco.vel.dot(fwd) / speed;
-        if forwardness > 0.2 {
-            loco.yaw = loco.vel.x.atan2(loco.vel.z);
+        let sprinting =
+            keyboard.pressed(KeyCode::ShiftLeft) || keyboard.pressed(KeyCode::ShiftRight);
+        let gait = if sprinting { RUN_SPEED } else { WALK_SPEED };
+        loco.vel = wish * gait;
+        // Facing follows the wish directly (no inertia needed — root
+        // displacement already trails the turn through the clip).
+        if wish != Vec3::ZERO {
+            let want_yaw = wish.x.atan2(wish.z);
+            let mut d = want_yaw - loco.yaw;
+            while d < -std::f32::consts::PI {
+                d += 2.0 * std::f32::consts::PI;
+            }
+            while d > std::f32::consts::PI {
+                d -= 2.0 * std::f32::consts::PI;
+            }
+            loco.yaw += d * (1.0 - (-12.0 * dt).exp());
         }
     }
 
