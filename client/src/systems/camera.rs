@@ -84,8 +84,10 @@ pub fn orbit_camera(
             if let Ok((ct, loco)) = char_query.single() {
                 let speed = loco.vel.length();
                 if speed > 1.0 {
-                    let fwd = ct.forward();
-                    let char_yaw = (-fwd.x).atan2(-fwd.z);
+                    // Guarded: a denormalized rotation panics Bevy's axis
+                    // helpers in debug builds — never trust it blind.
+                    let f = ct.rotation.normalize().mul_vec3(Vec3::NEG_Z);
+                    let char_yaw = (-f.x).atan2(-f.z);
                     let want = char_yaw + std::f32::consts::PI;
                     orbit.target_yaw += ang_diff(orbit.target_yaw, want)
                         * (1.0 - (-3.0 * time.delta_secs()).exp());

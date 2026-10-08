@@ -91,8 +91,34 @@ pub fn animate_locomotion(
     }
 }
 
-/// Compose the final body transform: smoothed slope-aligned basis, lean
-/// into speed, bob on top. Y position rides terrain through `base_y`.
+/// Compose the body orientation from facing yaw + slope up + speed lean.
+/// The basis is re-orthonormalized and the result normalized: Bevy's axis
+/// helpers (`forward()` etc.) debug-panic on denormalized rotations, and a
+/// tilted cross product is exactly how you get one. Pure for testing.
+pub fn compose_body(yaw: f32, slope_up: Vec3, speed: f32) -> Quat {
+    let fwd = Vec3::new(yaw.sin(), 0.0, yaw.cos());
+    let mut right = slope_up.cross(fwd);
+    if right.length_squared() < 1e-8 {
+        right = Vec3::X;
+    } else {
+        right = right.normalize();
+    }
+    let up = slope_up.normalize_or_zero();
+    let up = if up == Vec3::ZERO { Vec3::Y } else { up };
+    let fwd2 = right.cross(up).normalize_or_zero();
+    let fwd2 = if fwd2 == Vec3::ZERO { fwd } else { fwd2 };
+    // Re-orthogonalize: right stays, up rebuilt perpendicular.
+    let up2 = fwd2.cross(right).normalize_or_zero();
+    let up2 = if up2 == Vec3::ZERO { Vec3::Y } else { up2 };
+    let right2 = up2.cross(fwd2).normalize_or_zero();
+    let right2 = if right2 == Vec3::ZERO { Vec3::X } else { right2 };
+    let lean = (speed * 0.02).clamp(0.0, 0.15);
+    let base = Mat3::from_cols(right2, up2, -fwd2);
+    (Quat::from_axis_angle(right2, lean) * Quat::from_mat3(&base)).normalize()
+}
+
+/// Per-frame body update: smooth the slope up, compose orientation, ride
+/// terrain height with a speed bob.
 fn pose(transform: &mut Transform, loco: &mut Locomotion, speed: f32, dt: f32) {
     let p = transform.translation;
     // Slope samples around the feet, same cross pattern as the reference.
@@ -111,14 +137,7 @@ fn pose(transform: &mut Transform, loco: &mut Locomotion, speed: f32, dt: f32) {
     loco.slope_up = (loco.slope_up * (1.0 - k) + desired_up * k).normalize();
 
     // Basis: yaw facing, tilted by the smoothed slope up.
-    let fwd = Vec3::new(fx, 0.0, fz);
-    let right = loco.slope_up.cross(fwd).normalize_or_zero();
-    let right = if right == Vec3::ZERO { Vec3::X } else { right };
-    let fwd2 = right.cross(loco.slope_up).normalize();
-    let lean = (speed * 0.02).clamp(0.0, 0.15);
-    let base = Mat3::from_cols(right, loco.slope_up, -fwd2);
-    let lean_q = Quat::from_axis_angle(right, lean);
-    transform.rotation = lean_q * Quat::from_mat3(&base);
+    transform.rotation = compose_body(loco.yaw, loco.slope_up, speed);
 
     if speed > 0.5 {
         loco.phase += dt * (4.0 + speed * 1.2);
@@ -126,5 +145,39 @@ fn pose(transform: &mut Transform, loco: &mut Locomotion, speed: f32, dt: f32) {
         transform.translation.y = loco.base_y + bob;
     } else {
         transform.translation.y += (loco.base_y - transform.translation.y) * (dt * 8.0).min(1.0);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn body_compose_never_denormalizes() {
+        // Yaw sweep × slope tilts including degenerate straight-up input.
+        let ups = [
+            Vec3::Y,
+            Vec3::new(0.3, 0.9, -0.2),
+            Vec3::new(-0.5, 0.7, 0.5),
+            Vec3::new(0.0, 0.2, 0.0),
+            Vec3::ZERO,
+            Vec3::new(0.0, -1.0, 0.0),
+        ];
+        for i in 0..64 {
+            let yaw = i as f32 * 0.314159;
+            for up in ups {
+                for speed in [0.0, 3.0, 13.8] {
+                    let q = compose_body(yaw, up, speed);
+                    assert!(
+                        q.is_normalized(),
+                        "denormalized at yaw={yaw} up={up:?} speed={speed}"
+                    );
+                    // Forward stays sane (no NaN, roughly horizontal).
+                    let f = q * Vec3::NEG_Z;
+                    assert!(f.is_finite());
+                    assert!(f.y.abs() < 0.9, "forward tipped over: {f:?}");
+                }
+            }
+        }
     }
 }
