@@ -25,8 +25,16 @@ pub fn player_input(
     facing: Res<FacingCam>,
     mut net: ResMut<NetState>,
     mut query: Query<(&mut Transform, &Character, &mut Locomotion), With<LocalCharacter>>,
+    mut last_warn: Local<f32>,
 ) {
-    let Ok((transform, character, mut loco)) = query.single_mut() else { return };
+    let Ok((transform, character, mut loco)) = query.single_mut() else {
+        *last_warn += time.delta_secs();
+        if *last_warn > 5.0 {
+            *last_warn = 0.0;
+            log::warn!("input: no single LocalCharacter — tag missing?");
+        }
+        return;
+    };
 
     if character.is_dead {
         return; // dead — press R to respawn at camp

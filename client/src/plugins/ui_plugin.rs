@@ -41,10 +41,25 @@ fn spawn_hud(mut commands: Commands) {
 /// Refreshes HUD each frame. Shows connection progress honestly so a stuck
 /// state names itself instead of freezing on one word.
 fn update_hud(
+    time: Res<Time>,
     net: Res<NetState>,
     character_query: Query<&Character, With<LocalCharacter>>,
+    all_characters: Query<&Character, Without<LocalCharacter>>,
     mut hud_query: Query<&mut Text, With<HudText>>,
+    mut census_t: Local<f32>,
 ) {
+    // 10 s census: the one line that explains any "frozen" report.
+    *census_t += time.delta_secs();
+    if *census_t > 10.0 {
+        *census_t = 0.0;
+        log::info!(
+            "census: local_tags={} remote_chars={} connected={} own={:?}",
+            character_query.iter().count(),
+            all_characters.iter().count(),
+            net.connected,
+            net.own_character_id,
+        );
+    }
     let Ok(mut hud_text) = hud_query.single_mut() else { return };
 
     if !net.connected {
