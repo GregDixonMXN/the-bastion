@@ -6,6 +6,7 @@ use crate::plugins::terrain_plugin::terrain_height;
 use crate::resources::{GameState, NetEvent, NetState};
 use super::animation::NeedsClips;
 use super::locomotion::Locomotion;
+use super::style::StyleAs;
 
 /// Drains the SpacetimeDB event bridge each frame and mirrors rows into
 /// entities. Server state is authoritative: stats always apply, transforms
@@ -103,6 +104,7 @@ pub fn drain_net_events(
                             Name::new(format!("Character-{}", row.name)),
                             Locomotion::new(ground, pos, 0.10),
                             NeedsClips,
+                            StyleAs::Warrior,
                         ))
                         .id();
                     if is_ours {
@@ -174,6 +176,7 @@ pub fn drain_net_events(
                         Name::new(format!("Enemy-{}", row.enemy_type)),
                         Locomotion::new(base, pos, 0.15),
                         NeedsClips,
+                        StyleAs::Fox,
                     ));
                 }
             }

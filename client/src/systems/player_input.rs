@@ -93,17 +93,15 @@ pub fn player_input(
     transform.translation += loco.vel * dt;
 
     // Facing: follow velocity when moving forward-ish; backpedal and strafes
-    // hold facing (and with it, the trailing camera).
+    // hold facing (and with it, the trailing camera). Rotation itself is
+    // composed by locomotion — here we only steer `yaw`.
     let speed = loco.vel.length();
-    let mut yaw = transform.rotation.to_euler(EulerRot::YXZ).0;
     if speed > 0.5 {
         let forwardness = loco.vel.dot(fwd) / speed;
         if forwardness > 0.2 {
-            yaw = loco.vel.x.atan2(loco.vel.z);
+            loco.yaw = loco.vel.x.atan2(loco.vel.z);
         }
     }
-    let pitch = (speed * 0.02).clamp(0.0, 0.15);
-    transform.rotation = Quat::from_euler(EulerRot::YXZ, yaw, pitch, 0.0);
 
     // Throttled authoritative sync.
     let Some(conn) = net.conn.as_ref() else { return };

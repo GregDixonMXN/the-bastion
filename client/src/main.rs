@@ -11,6 +11,7 @@ use plugins::{CampPlugin, CharacterPlugin, EnemyPlugin, SpacetimePlugin, Terrain
 use resources::GameState;
 use systems::animation::AnimationPlugin;
 use systems::camera::{FacingCam, OrbitCam};
+use systems::style::StylePlugin;
 
 fn main() {
     // Logging is owned by Bevy's LogPlugin (RUST_LOG respected).
@@ -35,6 +36,7 @@ fn main() {
             SpacetimePlugin,
             TerrainPlugin,
             AnimationPlugin,
+            StylePlugin,
             CharacterPlugin,
             CampPlugin,
             EnemyPlugin,

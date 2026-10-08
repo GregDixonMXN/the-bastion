@@ -59,13 +59,15 @@ pub struct AttackFlash {
     pub t: f32,
 }
 
-/// Currently playing clip, to avoid restarting every frame.
+/// Currently playing clip, to avoid restarting every frame. None forces
+/// the first play call — without this the model holds its bind pose forever.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
-pub struct Playing(pub Clip);
+pub struct Playing(pub Option<Clip>);
 
-/// Fox idle/walk state.
+/// Fox idle/walk state. None forces the first play call.
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub enum FoxPose {
+    Unset,
     Survey,
     Walk,
 }
@@ -164,7 +166,7 @@ fn setup_clips(
             AnimationPlayer::default(),
             
             AnimationGraphHandle(built.graph.clone()),
-            Playing(Clip::Idle),
+            Playing(None),
         ));
         commands.entity(entity).remove::<NeedsClips>();
     }
@@ -173,7 +175,7 @@ fn setup_clips(
             AnimationPlayer::default(),
             
             AnimationGraphHandle(built.graph.clone()),
-            FoxPose::Survey,
+            FoxPose::Unset,
         ));
         commands.entity(entity).remove::<NeedsClips>();
     }
@@ -208,14 +210,15 @@ fn drive_characters(
                 Clip::Idle
             }
         };
-        if want != playing.0 {
+        if Some(want) != playing.0 {
             if let Some(node) = built.adventurer.get(&want) {
                 if want == Clip::Attack {
                     play_once(&mut player, *node);
                 } else {
                     play_loop(&mut player, *node);
                 }
-                playing.0 = want;
+                playing.0 = Some(want);
+                log::info!("playing clip {:?}", want);
             }
         }
     }
@@ -251,10 +254,13 @@ fn drive_foxes(
         } else {
             FoxPose::Survey
         };
+        if want == FoxPose::Unset {
+            return;
+        }
         if want != *pose {
             let node = match want {
                 FoxPose::Walk => built.fox_walk,
-                FoxPose::Survey => built.fox_survey,
+                _ => built.fox_survey,
             };
             play_loop(&mut player, node);
             *pose = want;
