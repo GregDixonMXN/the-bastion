@@ -145,6 +145,10 @@ struct Rig {
     prev_clip: Clip,
     prev_time: f32,
     blend: f32,
+    /// Last bank-frame position the root motion consumed, per clip track.
+    /// Deltas between consumed positions make speed framerate-independent.
+    last_ft: f32,
+    last_track: Clip,
 }
 
 /// Marker: scene spawned, bone map not built yet.
@@ -251,6 +255,8 @@ fn build_rigs(
             prev_clip: Clip::Idle,
             prev_time: 0.0,
             blend: 1.0,
+            last_ft: 0.0,
+            last_track: Clip::Idle,
         });
         commands.entity(root).remove::<NeedsRig>();
     }
@@ -394,36 +400,61 @@ fn apply_pose(
     }
 }
 
-/// Root motion: hips planar displacement each frame, rotated by facing,
-/// added to the local hero. Dodge triples the burst. Remote bodies skip it
-/// — the server owns their positions.
+/// Root motion: consume bank-frame hips displacement between the last
+/// consumed position and now, rotated by facing. Consuming the exact span
+/// the clock advanced keeps speed framerate-independent and loop-safe.
 fn root_motion(
     bank: Res<AnimBank>,
-    mut query: Query<(&mut Transform, &Locomotion, &Rig), With<LocalCharacter>>,
+    mut query: Query<(&mut Transform, &Locomotion, &mut Rig), With<LocalCharacter>>,
 ) {
-    for (mut transform, loco, rig) in &mut query {
+    for (mut transform, loco, mut rig) in &mut query {
         let data = &bank.clips[rig.clip.key()];
         let n = data.frames.len() as f32;
-        let ft = (rig.time * bank.fps) % n.max(1.0);
-        let i1 = ft.floor() as usize % data.frames.len().max(1);
-        let i0 = if i1 == 0 {
-            data.frames.len() - 1
+        let now_ft = positive_mod(rig.time * bank.fps, n);
+        let (from_ft, span_ft) = if rig.last_track != rig.clip {
+            // Fresh clip (or first run): anchor without teleporting.
+            (now_ft, 0.0)
         } else {
-            i1 - 1
+            let mut span = now_ft - rig.last_ft;
+            if span < 0.0 {
+                span += n; // wrapped the loop seam
+            }
+            // Clamp runaway spans (hitches, tab-outs) to two frames.
+            (rig.last_ft, span.min(2.0))
         };
-        let a = &data.frames[i0][bank.hips];
-        let b = &data.frames[i1][bank.hips];
-        // Bank plane (x, y=forward) → game (x, -z): forward moves facing dir.
-        let dx = b[0] - a[0];
-        let dy = b[1] - a[1];
+        let a = sample_root_xz(&bank, rig.clip, from_ft);
+        let b = sample_root_xz(&bank, rig.clip, from_ft + span_ft);
+        let (dx, dy) = (b.0 - a.0, b.1 - a.1);
         let mult = if loco.dodge_t > 0.0 { 3.0 } else { 1.0 };
         let (sy, cy) = (loco.yaw.sin(), loco.yaw.cos());
-        // Facing frame: bank +y (forward) maps onto facing dir.
-        let wx = (dx * cy + dy * sy) * mult;
-        let wz = (-dx * sy + dy * cy) * mult;
-        transform.translation.x += wx;
-        transform.translation.z += wz;
+        transform.translation.x += (dx * cy + dy * sy) * mult;
+        transform.translation.z += (-dx * sy + dy * cy) * mult;
+        rig.last_ft = now_ft;
+        rig.last_track = rig.clip;
     }
+}
+
+fn positive_mod(x: f32, n: f32) -> f32 {
+    let mut r = x % n.max(1.0);
+    if r < 0.0 {
+        r += n.max(1.0);
+    }
+    r
+}
+
+/// Hips planar position at a fractional bank-frame index (bank plane).
+fn sample_root_xz(bank: &AnimBank, clip: Clip, ft: f32) -> (f32, f32) {
+    let data = &bank.clips[clip.key()];
+    let n = data.frames.len();
+    let i0 = ft.floor() as usize % n;
+    let i1 = (i0 + 1) % n;
+    let f = ft - ft.floor();
+    let a = &data.frames[i0][bank.hips];
+    let b = &data.frames[i1][bank.hips];
+    (
+        a[0] + (b[0] - a[0]) * f,
+        a[1] + (b[1] - a[1]) * f,
+    )
 }
 
 fn attack_decay(

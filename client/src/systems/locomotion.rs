@@ -139,11 +139,17 @@ fn pose(transform: &mut Transform, loco: &mut Locomotion, speed: f32, dt: f32) {
     // Basis: yaw facing, tilted by the smoothed slope up.
     transform.rotation = compose_body(loco.yaw, loco.slope_up, speed);
 
+    // Ground follows the feet: re-sample every frame so hills, dips, and
+    // root-motion travel never leave the body floating or buried.
+    loco.base_y = terrain_height(p.x, p.z);
     if speed > 0.5 {
         loco.phase += dt * (4.0 + speed * 1.2);
         let bob = loco.phase.sin().abs() * loco.bob_amp * (speed.min(14.0) / 6.0).min(1.4);
         transform.translation.y = loco.base_y + bob;
     } else {
+        // Ground follows the feet: re-sample every frame so hills, dips,
+        // and root-motion travel never leave the body floating or buried.
+        loco.base_y = terrain_height(p.x, p.z);
         transform.translation.y += (loco.base_y - transform.translation.y) * (dt * 8.0).min(1.0);
     }
 }
